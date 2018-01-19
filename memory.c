@@ -26,6 +26,7 @@ unsigned char *memory_alloc(
             return NULL;
         }
         else {
+            memset(region, 0, pages * main_context->system_page_size);
             return region;
         }
     }

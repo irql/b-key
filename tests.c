@@ -10,7 +10,6 @@ int test_memory_alloc(struct main_context * main_context, int pages) {
     fprintf(stderr, "Mapping %d pages (%.2fGB)...", pages, (((float)pages * main_context->system_page_size) / 1000000000));
     unsigned char * region = memory_alloc(main_context, pages);
     if(region) {
-        memset(region, 0, pages * main_context->system_page_size);
         fprintf(stderr, "free(%p)'d %s\n", region, memory_free(main_context, region, pages) == -1 ? strerror(errno) : "OK");
     }
     else {
@@ -107,8 +106,14 @@ int run_tests(struct main_context * main_context) {
     for(; (1 << i) < main_context->system_phys_page_count; i++) {
         test_memory_alloc(main_context, (1 << i));
     }
+
+    /* Don't do this unless you're masochistic
+
     fprintf(stderr, "Attempting to allocate all but 65536 pyshical pages in the system\n");
-    test_memory_alloc(main_context, main_context->system_phys_page_count - 0x10000);
+    if(!test_memory_alloc(main_context, main_context->system_phys_page_count - 0x10000))
+        return 0;
+
+    */
 
     return 1;
 }
