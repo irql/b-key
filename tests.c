@@ -107,8 +107,8 @@ int run_tests(struct main_context * main_context) {
     for(; (1 << i) < main_context->system_phys_page_count; i++) {
         test_memory_alloc(main_context, (1 << i));
     }
-    fprintf(stderr, "Attempting to allocate all but 1024 pyshical pages in the system\n");
-    test_memory_alloc(main_context, main_context->system_phys_page_count - 0x400);
+    fprintf(stderr, "Attempting to allocate all but 65536 pyshical pages in the system\n");
+    test_memory_alloc(main_context, main_context->system_phys_page_count - 0x10000);
 
     return 1;
 }
