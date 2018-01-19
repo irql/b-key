@@ -9,7 +9,7 @@ struct ptbl_record {
     unsigned long int *page_usage;
 };
 
-#define PTBL_KEY_BITMASK 0xE0000000
+#define PTBL_KEY_BITMASK (0xE0 << 24)
 #define PTBL_KEY_HIGH_BITMASK 0x38
 #define PTBL_KEY_LOW_BITMASK 0x7
 #define PTBL_KEY_HIGH_SHIFT 26
@@ -30,7 +30,7 @@ struct ptbl_record {
 // The 6-bit key is sharded out to the upper three bits of the page_count and offset fields
 #define PTBL_RECORD_GET_KEY(x) (((x.key_high_and_page_count & PTBL_KEY_BITMASK) >> PTBL_KEY_HIGH_SHIFT) | ((x.key_low_and_offset & PTBL_KEY_BITMASK) >> PTBL_KEY_LOW_SHIFT))
 
-// Only to be called once, upon initialization of the ptbl.
+// Only to be called once, upon initialization of the record.
 // Once set, the key is expected to _NEVER_ change.
 #define PTBL_RECORD_SET_KEY(x,y) \
     x.key_high_and_page_count &= ~PTBL_KEY_BITMASK; \
@@ -49,8 +49,8 @@ struct kv_record {
     unsigned long int offset;
 };
 
-#define KV_RECORD_FLAGS_BITMASK 0xFF00000000000000
 #define KV_RECORD_FLAGS_SHIFT 56
+#define KV_RECORD_FLAGS_BITMASK ((unsigned long)0xFF << KV_RECORD_FLAGS_SHIFT)
 
 #define KV_RECORD_GET_SIZE(x) (x.flags_and_size & ~KV_RECORD_FLAGS_BITMASK)
 #define KV_RECORD_SET_SIZE(x,y) \

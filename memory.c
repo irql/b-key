@@ -7,12 +7,20 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "context.h"
+
 unsigned char *memory_alloc(
+    struct main_context *main_context,
     int page_count
 ) {
     if(page_count > 0) {
-        unsigned int page_size = sysconf(_SC_PAGE_SIZE);
-        unsigned char *region = mmap(NULL, page_count * page_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+        unsigned char *region =
+            mmap(NULL,
+                page_count * main_context->system_page_size,
+                PROT_READ | PROT_WRITE,
+                MAP_ANONYMOUS | MAP_PRIVATE,
+                -1,
+                0);
         if(region == MAP_FAILED) {
             printf("%s\n", strerror(errno));
             return NULL;
@@ -23,4 +31,17 @@ unsigned char *memory_alloc(
     }
     
     return NULL;
+}
+
+int memory_free(
+    struct main_context *main_context,
+    unsigned char *region,
+    int page_count
+) {
+    if(page_count > 0) {
+        return munmap(region, page_count * main_context->system_page_size);
+    }
+    else {
+        return 0;
+    }
 }
