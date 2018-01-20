@@ -5,11 +5,12 @@
 
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 #include "context.h"
 
-unsigned char *memory_alloc(
+unsigned char *memory_page_alloc(
     struct main_context *main_context,
     int page_count
 ) {
@@ -26,7 +27,7 @@ unsigned char *memory_alloc(
             return NULL;
         }
         else {
-            memset(region, 0, pages * main_context->system_page_size);
+            memset(region, 0, page_count * main_context->system_page_size);
             return region;
         }
     }
@@ -34,7 +35,7 @@ unsigned char *memory_alloc(
     return NULL;
 }
 
-int memory_free(
+int memory_page_free(
     struct main_context *main_context,
     unsigned char *region,
     int page_count
@@ -45,4 +46,23 @@ int memory_free(
     else {
         return 0;
     }
+}
+
+unsigned char *memory_alloc(int amount) {
+    if(amount > 0) {
+        unsigned char *region = malloc(amount);
+        memset(region, 0, amount);
+        return region;
+    }
+    else {
+        return 0;
+    }
+}
+
+void memory_free(void *record) {
+    free(record);
+}
+
+unsigned char *memory_realloc(void *region, int new_amount) {
+    return realloc(region, new_amount);
 }

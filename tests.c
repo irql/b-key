@@ -5,12 +5,13 @@
 #include "context.h"
 #include "records.h"
 #include "memory.h"
+#include "database.h"
 
-int test_memory_alloc(struct main_context * main_context, int pages) {
+int test_page_alloc(struct main_context * main_context, int pages) {
     fprintf(stderr, "Mapping %d pages (%.2fGB)...", pages, (((float)pages * main_context->system_page_size) / 1000000000));
-    unsigned char * region = memory_alloc(main_context, pages);
+    unsigned char * region = memory_page_alloc(main_context, pages);
     if(region) {
-        fprintf(stderr, "free(%p)'d %s\n", region, memory_free(main_context, region, pages) == -1 ? strerror(errno) : "OK");
+        fprintf(stderr, "free(%p)'d %s\n", region, memory_page_free(main_context, region, pages) == -1 ? strerror(errno) : "OK");
     }
     else {
         fprintf(stderr, "Failed to allocate\n");
@@ -102,18 +103,82 @@ int run_tests(struct main_context * main_context) {
         return 0;
     }
 
-    unsigned char i = 0;
+    /*unsigned char i = 0;
     for(; (1 << i) < main_context->system_phys_page_count; i++) {
-        test_memory_alloc(main_context, (1 << i));
+        test_page_alloc(main_context, (1 << i));
     }
 
-    /* Don't do this unless you're masochistic
+    * Don't do this unless you're masochistic
 
     fprintf(stderr, "Attempting to allocate all but 65536 pyshical pages in the system\n");
     if(!test_memory_alloc(main_context, main_context->system_phys_page_count - 0x10000))
         return 0;
 
     */
+
+    RECORD_CREATE(Record_database, database);
+
+    RECORD_ALLOC(Record_ptbl, database->ptbl_record_tbl);
+    database->ptbl_record_count = 1;
+    PTBL_RECORD_SET_KEY(database->ptbl_record_tbl[0], 3);
+    PTBL_RECORD_SET_PAGE_COUNT(database->ptbl_record_tbl[0], 1);
+
+    Record_ptbl *ptbl = database_ptbl_search(main_context, database, 3);
+    if(ptbl != database->ptbl_record_tbl) {
+        fprintf(stderr, "Failed to find ptbl entry\n");
+        return 0;
+    }
+
+    if(0 != database_ptbl_search(main_context, database, -1)) {
+        fprintf(stderr, "Ptbl lookup should have failed\n");
+        return 0;
+    }
+
+    memory_free(database->ptbl_record_tbl);
+    database->ptbl_record_tbl = 0;
+
+    unsigned int count;
+    unsigned char *page = database_pages_alloc(main_context, database, 1, 0);
+    if(!page) {
+        fprintf(stderr, "Failed to crate a page\n");
+        return 0;
+    }
+    if(database->ptbl_record_count != 1) {
+        fprintf(stderr, "ptbl_record_count != 1\n");
+        return 0;
+    }
+    if((count = PTBL_RECORD_GET_PAGE_COUNT(database->ptbl_record_tbl[0])) != 1) {
+        fprintf(stderr, "Bucket 0 page count incorrect (%d != 1)\n", count);
+        return 0;
+    }
+
+    // Realloc a NEW bucket
+    unsigned char *newpage = database_pages_alloc(main_context, database, 4, 1);
+    if(!newpage) {
+        fprintf(stderr, "Failed to realloc a new page bucket\n");
+        return 0;
+    }
+    if(database->ptbl_record_count != 2) {
+        fprintf(stderr, "ptbl_record_count != 2\n");
+        return 0;
+    }
+    if((count = PTBL_RECORD_GET_PAGE_COUNT(database->ptbl_record_tbl[1])) != 4) {
+        fprintf(stderr, "Bucket 1 page count incorrect (%d != 4)\n", count);
+        return 0;
+    }
+
+    // Realloc the SAME bucket
+    newpage = database_pages_alloc(main_context, database, 4, 0);
+    if(!newpage) {
+        fprintf(stderr, "Failed to realloc the same page bucket\n");
+        return 0;
+    }
+    if(newpage != page) {
+        fprintf(stderr, "Given a new address? %p=>%p\n", page, newpage);
+    }
+
+    database_pages_free(main_context, database);
+    memory_free(database);
 
     return 1;
 }
