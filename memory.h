@@ -4,6 +4,14 @@ memory_page_alloc(
     int page_count
     );
 
+unsigned char *
+memory_page_realloc(
+    struct main_context *main_context,
+    unsigned char *offset,
+    int old_page_count,
+    int page_count
+    );
+
 int
 memory_page_free(
     struct main_context *main_context,
@@ -21,4 +29,8 @@ memory_free(
     void *record
     );
 
-unsigned char *memory_realloc(void *region, int new_amount);
+unsigned char *
+memory_realloc(
+    void *region,
+    int new_amount
+    );

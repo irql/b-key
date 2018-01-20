@@ -25,12 +25,8 @@ void database_ptbl_init(
     int page_count,
     int bucket
 ) {
-    // 32 bytes (4w) per page for bucket #0 (16 byte values) (4096 / 16 = 256bits. 256/8 = 32 bytes)
-    // 16 bytes (2w) per page for bucket #1 (32 byte vlaues)
-    int bytes = (bucket < 5) ? (32 >> bucket) : 1;
-
+    int bytes = PTBL_CALC_PAGE_USAGE_LENGTH(bucket);
     ptbl_entry->page_usage_length = bytes * page_count;
-
     // Leave page_usage bits zero, they will be set/unset
     // upon the storage or deletion of individual k/v pairs
     ptbl_entry->page_usage = memory_alloc(sizeof(unsigned char) * bytes);
@@ -70,8 +66,28 @@ unsigned char *database_pages_alloc(
         Record_ptbl *ptbl = database_ptbl_search(ctx_main, rec_database, bucket);
 
         if(ptbl) {
-            // Try to find free contiguous pages matching page_count requirements
-            // Realloc (add) more pages if necessary
+            if(!ptbl->m_offset) {
+                fprintf(stderr, "Ptbl record, bucket %d, corrupt (m_offset is null)\n", bucket);
+                return 0;
+            }
+            // Realloc (add) more pages
+            int new_page_count = PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) + page_count;
+            unsigned char *offset = memory_page_realloc(
+                    ctx_main,
+                    ptbl->m_offset,
+                    PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]),
+                    new_page_count
+                    );
+            if(!offset) {
+                return 0;
+            }
+
+            ptbl->page_usage_length = PTBL_CALC_PAGE_USAGE_LENGTH(bucket);
+            ptbl->page_usage = memory_alloc(sizeof(unsigned char) * ptbl->page_usage_length);
+
+            ptbl->m_offset = offset;
+            PTBL_RECORD_SET_PAGE_COUNT(ptbl[0], new_page_count);
+
             return -1;
         }
         else {

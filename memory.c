@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -10,7 +12,8 @@
 
 #include "context.h"
 
-unsigned char *memory_page_alloc(
+unsigned char *
+memory_page_alloc(
     struct main_context *main_context,
     int page_count
 ) {
@@ -35,6 +38,34 @@ unsigned char *memory_page_alloc(
     return NULL;
 }
 
+unsigned char *
+memory_page_realloc(
+    struct main_context *main_context,
+    unsigned char *offset,
+    int old_page_count,
+    int page_count
+) {
+    if(page_count > 0 && page_count > 0) {
+        unsigned char *region =
+            mremap(offset,
+                    main_context->system_page_size * old_page_count,
+                    main_context->system_page_size * page_count,
+                    MREMAP_MAYMOVE
+                  );
+        if(region == MAP_FAILED) {
+            fprintf(stderr, "memory_page_realloc(): %s\n", strerror(errno));
+            return 0;
+        }
+        else {
+            return region;
+        }
+    }
+
+    fprintf(stderr, "memory_page_realloc(): Both old and new page count must be >0\n");
+
+    return 0;
+}
+
 int memory_page_free(
     struct main_context *main_context,
     unsigned char *region,
@@ -48,7 +79,10 @@ int memory_page_free(
     }
 }
 
-unsigned char *memory_alloc(int amount) {
+unsigned char *
+memory_alloc(
+    int amount
+) {
     if(amount > 0) {
         unsigned char *region = malloc(amount);
         memset(region, 0, amount);
@@ -59,10 +93,17 @@ unsigned char *memory_alloc(int amount) {
     }
 }
 
-void memory_free(void *record) {
+void
+memory_free(
+    void *record
+) {
     free(record);
 }
 
-unsigned char *memory_realloc(void *region, int new_amount) {
+unsigned char *
+memory_realloc(
+    void *region,
+    int new_amount
+) {
     return realloc(region, new_amount);
 }
