@@ -151,6 +151,10 @@ int run_tests(struct main_context * main_context) {
         fprintf(stderr, "Bucket 0 page count incorrect (%d != 1)\n", count);
         return 0;
     }
+    if((count = database->ptbl_record_tbl[0].page_usage_length) != 4) {
+        fprintf(stderr, "Failed to alloc correct amount for page_usage (%d != 4)\n", count);
+        return 0;
+    }
 
     // Realloc a NEW bucket
     unsigned char *newpage = database_pages_alloc(main_context, database, 4, 1);

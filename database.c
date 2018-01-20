@@ -25,8 +25,14 @@ void database_ptbl_init(
     int page_count,
     int bucket
 ) {
-    if(!ptbl_entry->page_usage) RECORD_ALLOC(unsigned long, ptbl_entry->page_usage);
+    // 32 bytes (4w) for bucket #0 (16 byte values) (4096 / 16 = 256bits. 256/8 = 32 bytes)
+    // 16 bytes (2w) for bucket #1 (32 byte vlaues)
+    int words = (4 >> bucket) > 0 ? (4 >> bucket) : 1;
+    ptbl_entry->page_usage = (unsigned long *)memory_alloc(sizeof(unsigned long) * words);
+    ptbl_entry->page_usage_length = words;
+
     PTBL_RECORD_SET_KEY(ptbl_entry[0], bucket);
+
     ptbl_entry->m_offset = memory_page_alloc(ctx_main, page_count);
     PTBL_RECORD_SET_PAGE_COUNT(ptbl_entry[0], page_count);
 }
@@ -86,6 +92,12 @@ void database_pages_free(
     Record_database *rec_database
 ) {
     if(rec_database->ptbl_record_tbl) {
+        int i = 0;
+        for(; i < rec_database->ptbl_record_count; i++) {
+            if(rec_database->ptbl_record_tbl[i].page_usage) {
+                memory_free(rec_database->ptbl_record_tbl[i].page_usage);
+            }
+        }
         memory_free(rec_database->ptbl_record_tbl);
         rec_database->ptbl_record_count = 0;
     }
