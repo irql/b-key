@@ -151,8 +151,8 @@ int run_tests(struct main_context * main_context) {
         fprintf(stderr, "Bucket 0 page count incorrect (%d != 1)\n", count);
         return 0;
     }
-    if((count = database->ptbl_record_tbl[0].page_usage_length) != 4) {
-        fprintf(stderr, "Failed to alloc correct amount for page_usage (%d != 4)\n", count);
+    if((count = database->ptbl_record_tbl[0].page_usage_length) != 32) {
+        fprintf(stderr, "Failed to alloc correct amount for page_usage (%d != 32)\n", count);
         return 0;
     }
 
@@ -170,8 +170,8 @@ int run_tests(struct main_context * main_context) {
         fprintf(stderr, "Bucket 1 page count incorrect (%d != 4)\n", count);
         return 0;
     }
-    if((count = database->ptbl_record_tbl[1].page_usage_length) != 2) {
-        fprintf(stderr, "Failed to alloc correct amount for page_usage (%d != 2)\n", count);
+    if((count = database->ptbl_record_tbl[1].page_usage_length) != 16 * 4) {
+        fprintf(stderr, "Failed to alloc correct amount for page_usage (%d != 16 * 4)\n", count);
         return 0;
     }
 

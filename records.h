@@ -8,8 +8,9 @@ typedef struct ptbl_record {
     unsigned int key_low_and_offset;
     
     unsigned char *m_offset;
+
     unsigned char page_usage_length; // in long words (8-byte)
-    unsigned long int *page_usage;
+    unsigned char *page_usage;
 } Record_ptbl;
 
 #define PTBL_KEY_BITMASK (0xE0 << 24)

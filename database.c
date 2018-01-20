@@ -25,11 +25,12 @@ void database_ptbl_init(
     int page_count,
     int bucket
 ) {
-    // 32 bytes (4w) for bucket #0 (16 byte values) (4096 / 16 = 256bits. 256/8 = 32 bytes)
-    // 16 bytes (2w) for bucket #1 (32 byte vlaues)
-    int words = (4 >> bucket) > 0 ? (4 >> bucket) : 1;
-    ptbl_entry->page_usage = (unsigned long *)memory_alloc(sizeof(unsigned long) * words);
-    ptbl_entry->page_usage_length = words;
+    // 32 bytes (4w) per page for bucket #0 (16 byte values) (4096 / 16 = 256bits. 256/8 = 32 bytes)
+    // 16 bytes (2w) per page for bucket #1 (32 byte vlaues)
+    int bytes = (bucket < 5) ? (32 >> bucket) : 1;
+
+    ptbl_entry->page_usage_length = bytes * page_count;
+    ptbl_entry->page_usage = memory_alloc(sizeof(unsigned char) * bytes);
 
     PTBL_RECORD_SET_KEY(ptbl_entry[0], bucket);
 
@@ -42,6 +43,12 @@ void database_ptbl_init(
 // i.e., bucket #0 is for <=16-byte values
 //       bucket #1 is for <=32-byte values
 //       bucket #2 is for <=64-byte values
+//       bucket #3 is for <=128-byte values
+//       bucket #4 is for <=256-byte values
+//       bucket #5 is for <=512-byte values
+//       bucket #6 is for <=1024-byte values
+//       bucket #7 is for <=2048-byte values
+//       bucket #8 is for <=4096-byte values
 //       ...
 //       bucket #20 is for <=64MB values
 //
