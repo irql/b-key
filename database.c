@@ -30,6 +30,9 @@ void database_ptbl_init(
     int bytes = (bucket < 5) ? (32 >> bucket) : 1;
 
     ptbl_entry->page_usage_length = bytes * page_count;
+
+    // Leave page_usage bits zero, they will be set/unset
+    // upon the storage or deletion of individual k/v pairs
     ptbl_entry->page_usage = memory_alloc(sizeof(unsigned char) * bytes);
 
     PTBL_RECORD_SET_KEY(ptbl_entry[0], bucket);
@@ -62,7 +65,10 @@ unsigned char *database_pages_alloc(
     int bucket
 ) {
     if(rec_database->ptbl_record_tbl) {
+        // Database ptbl_record_tbl exists
+
         Record_ptbl *ptbl = database_ptbl_search(ctx_main, rec_database, bucket);
+
         if(ptbl) {
             // Try to find free contiguous pages matching page_count requirements
             // Realloc (add) more pages if necessary
@@ -70,9 +76,11 @@ unsigned char *database_pages_alloc(
         }
         else {
             // Create new ptbl record for bucket
-            Record_ptbl *new_ptbl = (Record_ptbl *)memory_realloc(
+            Record_ptbl *new_ptbl =
+                (Record_ptbl *)
+                memory_realloc(
                     rec_database->ptbl_record_tbl,
-                    (++rec_database->ptbl_record_count * sizeof(Record_ptbl))
+                    (++rec_database->ptbl_record_count) * sizeof(Record_ptbl)
                     );
             if(!new_ptbl) {
                 fprintf(stderr, "database_alloc_pages(..%d..): Failed to realloc database->ptbl_record_tbl\n", bucket);
