@@ -71,26 +71,29 @@ unsigned char *database_pages_alloc(
                 return 0;
             }
 
-            //fprintf(stderr, "Bucket %d\n", bucket);
+            fprintf(stderr, "Bucket %d\n", bucket);
             // TODO: MUST CHECK page_count REQUESTED AND NOT JUST RETURN THE FIRST PAGE
             unsigned char *offset = 0;
             int i = 0,
+                free_pages = 0,
                 bits = (256 >> bucket),
                 bytes = PTBL_CALC_PAGE_USAGE_LENGTH(bucket);
+
             for(; i < ptbl->page_usage_length / bytes; i++) {
-                //fprintf(stderr, "Ptbl base: %p\n", ptbl->page_usage);
+                fprintf(stderr, "Ptbl base: %p\n", ptbl->page_usage);
                 int j = 0, free = 0;
 
                 if(bits >= 64) {
                     unsigned long *subset = (unsigned long *)&ptbl->page_usage[i * bytes];
-                    //fprintf(stderr, "Subset: %p\n", subset);
+                    fprintf(stderr, "Subset: %p\n", subset);
                     for(; j < bytes / 8; j++) {
-                        //fprintf(stderr, "%d: %016x\n", j, subset[j]);
+                        fprintf(stderr, "%d: %016lx\n", j, subset[j]);
                         if(subset[j] == 0) {
                             free++;
                         }
                     }
                 }
+                // little locks and keys :)
                 else if(bits == 32) {
                     if(((unsigned *)ptbl->page_usage)[i * bytes] == 0) {
                         free = j = 1;
@@ -114,7 +117,16 @@ unsigned char *database_pages_alloc(
                 }
 
                 if(free > 0 && j > 0 && free == j) {
-                    offset = ptbl->m_offset + i * ctx_main->system_page_size;
+                    free_pages++;
+                }
+                else {
+                    free_pages = 0;
+                }
+
+                fprintf(stderr, "%d, %d, %d, %d, %d\n", free_pages, page_count, i, j, free);
+                if(free_pages == page_count) {
+                    //offset = ptbl->m_offset + (i - (page_count - 1)) * ctx_main->system_page_size;
+                    offset = ptbl->m_offset + ((i - (page_count - 1)) << 12);
                     break;
                 }
             }
