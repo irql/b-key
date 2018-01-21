@@ -130,6 +130,7 @@ unsigned char *database_pages_alloc(
                     break;
                 }
             }
+            fprintf(stderr, "Offset decided = %p (%dB, page bucket starts %p)\n", offset, offset - ptbl->m_offset, ptbl->m_offset);
 
             if(!offset) {
                 // Realloc (add) more pages

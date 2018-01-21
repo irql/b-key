@@ -177,14 +177,14 @@ int run_tests(struct main_context * main_context) {
 
     // Realloc the SAME bucket with same size
     // NOTE: should return the exact same "page" since it is unused
-    database->ptbl_record_tbl[1].page_usage[(8 * 3) - 1] = 0xFF;
-    unsigned char *newpage2 = database_pages_alloc(main_context, database, 2, 1);
+    database->ptbl_record_tbl[1].page_usage[(8 * 2) - 1] = 0xFF;
+    unsigned char *newpage2 = database_pages_alloc(main_context, database, 3, 1);
     if(!newpage2) {
         fprintf(stderr, "Failed to realloc the same page bucket\n");
         return 0;
     }
     if(newpage != newpage2) {
-        fprintf(stderr, "New page has a new address %p=>%p\n", page, newpage);
+        fprintf(stderr, "New page has a new address %p=>%p\n", newpage, newpage2);
         return 0;
     }
 
