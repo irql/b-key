@@ -175,14 +175,16 @@ int run_tests(struct main_context * main_context) {
         return 0;
     }
 
-    // Realloc the SAME bucket
-    newpage = database_pages_alloc(main_context, database, 4, 0);
+    // Realloc the SAME bucket with same size
+    // NOTE: should return the exact same "page" since it is unused
+    newpage = database_pages_alloc(main_context, database, 1, 0);
     if(!newpage) {
         fprintf(stderr, "Failed to realloc the same page bucket\n");
         return 0;
     }
     if(newpage != page) {
-        fprintf(stderr, "Given a new address? %p=>%p\n", page, newpage);
+        fprintf(stderr, "New page has a new address %p=>%p\n", page, newpage);
+        return 0;
     }
 
     database_pages_free(main_context, database);
