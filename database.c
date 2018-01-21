@@ -83,12 +83,15 @@ unsigned char *database_pages_alloc(
             }
 
             ptbl->page_usage_length = PTBL_CALC_PAGE_USAGE_LENGTH(bucket);
-            ptbl->page_usage = memory_alloc(sizeof(unsigned char) * ptbl->page_usage_length);
+            ptbl->page_usage = memory_realloc(ptbl->page_usage, sizeof(unsigned char) * ptbl->page_usage_length);
+            if(!ptbl->page_usage) {
+                return 0;
+            }
 
             ptbl->m_offset = offset;
             PTBL_RECORD_SET_PAGE_COUNT(ptbl[0], new_page_count);
 
-            return -1;
+            return offset;
         }
         else {
             // Create new ptbl record for bucket
