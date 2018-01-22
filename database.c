@@ -76,7 +76,7 @@ unsigned char *database_pages_alloc(
                 return 0;
             }
 
-            fprintf(stderr, "Bucket %d (%d PUL)\n", bucket, ptbl->page_usage_length);
+            //fprintf(stderr, "\ndatabase_pages_alloc(.., %d, %d);\n", page_count, bucket);
             // TODO: MUST CHECK page_count REQUESTED AND NOT JUST RETURN THE FIRST PAGE
             unsigned char *offset = 0;
             int i = 0,
@@ -85,14 +85,12 @@ unsigned char *database_pages_alloc(
                 bytes = PTBL_CALC_PAGE_USAGE_LENGTH(bucket);
 
             for(; i < ptbl->page_usage_length / bytes; i++) {
-                fprintf(stderr, "Ptbl base: %p\n", ptbl->page_usage);
                 int j = 0, free = 0;
 
                 if(bits >= 64) {
-                    unsigned long *subset = (unsigned long *)&ptbl->page_usage[i * bytes];
-                    fprintf(stderr, "Subset: %p\n", subset);
+                    unsigned long *subset = (unsigned long *)(&ptbl->page_usage[i * bytes]);
                     for(; j < bytes / 8; j++) {
-                        fprintf(stderr, "%d: %016lx\n", j, subset[j]);
+                        //fprintf(stderr, "%d(%d): %016lx\n", i, j, subset[j]);
                         if(subset[j] == 0) {
                             free++;
                         }
@@ -100,21 +98,21 @@ unsigned char *database_pages_alloc(
                 }
                 // little locks and keys :)
                 else if(bits == 32) {
-                    unsigned usage = ((unsigned *)ptbl->page_usage)[i * bytes];
-                    fprintf(stderr, "%08x\n", usage);
+                    unsigned usage = ((unsigned *)ptbl->page_usage)[i];
+                    //fprintf(stderr, "%d: %08x\n", i, usage);
                     if(usage == 0) {
                         free = j = 1;
                     }
                 }
                 else if(bits == 16) {
-                    unsigned short usage = ((unsigned short *)ptbl->page_usage)[i * bytes];
-                    fprintf(stderr, "%x\n", usage);
+                    unsigned short usage = ((unsigned short *)ptbl->page_usage)[i];
+                    //fprintf(stderr, "%d: %x\n", i, usage);
                     if(usage == 0) {
                         free = j = 1;
                     }
                 }
                 else if(bits == 8) {
-                    fprintf(stderr, "%x\n", ptbl->page_usage[i]);
+                    //fprintf(stderr, "%d: %x\n", i, ptbl->page_usage[i]);
                     if(ptbl->page_usage[i] == 0) {
                         free = j = 1;
                     }
@@ -133,11 +131,10 @@ unsigned char *database_pages_alloc(
                     free_pages = 0;
                 }
 
-                fprintf(stderr, "%d, %d, %d, %d, %d\n", free_pages, page_count, i, j, free);
                 if(free_pages == page_count) {
                     //offset = ptbl->m_offset + (i - (page_count - 1)) * ctx_main->system_page_size;
                     offset = ptbl->m_offset + ((i - (page_count - 1)) << 12);
-                    fprintf(stderr, "Offset decided = %p (%dB, page bucket starts %p)\n", offset, offset - ptbl->m_offset, ptbl->m_offset);
+                    //fprintf(stderr, "Offset decided = %p (%dB, page bucket starts %p)\n", offset, offset - ptbl->m_offset, ptbl->m_offset);
                     break;
                 }
             }

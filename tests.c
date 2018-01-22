@@ -219,7 +219,7 @@ int run_tests(struct main_context * main_context) {
         }
 
 #define SET_USED(p,x,v) \
-        if(p < 5) \
+        if(p <= 5) \
             database->ptbl_record_tbl[i].page_usage[(32 >> p) * x] = v;
 
         SET_USED(i, 0, 1)
