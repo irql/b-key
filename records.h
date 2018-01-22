@@ -9,7 +9,7 @@ typedef struct ptbl_record {
     
     unsigned char *m_offset;
 
-    unsigned char page_usage_length; // in bytes
+    unsigned int page_usage_length; // in bytes
     unsigned char *page_usage;
 } Record_ptbl;
 

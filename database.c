@@ -27,6 +27,7 @@ void database_ptbl_init(
 ) {
     int bytes = PTBL_CALC_PAGE_USAGE_LENGTH(bucket);
     ptbl_entry->page_usage_length = bytes * page_count;
+    //fprintf(stderr, "database_ptbl_init(): Bucket %d: Bytes %d\n", bucket, ptbl_entry->page_usage_length);
     // Leave page_usage bits zero, they will be set/unset
     // upon the storage or deletion of individual k/v pairs
     ptbl_entry->page_usage = memory_alloc(sizeof(unsigned char) * ptbl_entry->page_usage_length);
@@ -60,6 +61,10 @@ unsigned char *database_pages_alloc(
     int page_count,
     int bucket
 ) {
+    if(!rec_database) {
+        return 0;
+    }
+
     if(rec_database->ptbl_record_tbl) {
         // Database ptbl_record_tbl exists
 
@@ -71,7 +76,7 @@ unsigned char *database_pages_alloc(
                 return 0;
             }
 
-            fprintf(stderr, "Bucket %d\n", bucket);
+            fprintf(stderr, "Bucket %d (%d PUL)\n", bucket, ptbl->page_usage_length);
             // TODO: MUST CHECK page_count REQUESTED AND NOT JUST RETURN THE FIRST PAGE
             unsigned char *offset = 0;
             int i = 0,
@@ -95,16 +100,21 @@ unsigned char *database_pages_alloc(
                 }
                 // little locks and keys :)
                 else if(bits == 32) {
-                    if(((unsigned *)ptbl->page_usage)[i * bytes] == 0) {
+                    unsigned usage = ((unsigned *)ptbl->page_usage)[i * bytes];
+                    fprintf(stderr, "%08x\n", usage);
+                    if(usage == 0) {
                         free = j = 1;
                     }
                 }
                 else if(bits == 16) {
-                    if(((unsigned short *)ptbl->page_usage)[i * bytes] == 0) {
+                    unsigned short usage = ((unsigned short *)ptbl->page_usage)[i * bytes];
+                    fprintf(stderr, "%x\n", usage);
+                    if(usage == 0) {
                         free = j = 1;
                     }
                 }
                 else if(bits == 8) {
+                    fprintf(stderr, "%x\n", ptbl->page_usage[i]);
                     if(ptbl->page_usage[i] == 0) {
                         free = j = 1;
                     }
@@ -127,11 +137,12 @@ unsigned char *database_pages_alloc(
                 if(free_pages == page_count) {
                     //offset = ptbl->m_offset + (i - (page_count - 1)) * ctx_main->system_page_size;
                     offset = ptbl->m_offset + ((i - (page_count - 1)) << 12);
+                    fprintf(stderr, "Offset decided = %p (%dB, page bucket starts %p)\n", offset, offset - ptbl->m_offset, ptbl->m_offset);
                     break;
                 }
             }
-            fprintf(stderr, "Offset decided = %p (%dB, page bucket starts %p)\n", offset, offset - ptbl->m_offset, ptbl->m_offset);
 
+            // TODO: Reclaim empty pages at the very end of alloc'd region
             if(!offset) {
                 // Realloc (add) more pages
                 int new_page_count = PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) + page_count;
@@ -145,7 +156,7 @@ unsigned char *database_pages_alloc(
                     return 0;
                 }
 
-                ptbl->page_usage_length = PTBL_CALC_PAGE_USAGE_LENGTH(bucket);
+                ptbl->page_usage_length = PTBL_CALC_PAGE_USAGE_LENGTH(bucket) * new_page_count;
                 ptbl->page_usage = memory_realloc(ptbl->page_usage, sizeof(unsigned char) * ptbl->page_usage_length);
                 if(!ptbl->page_usage) {
                     return 0;
