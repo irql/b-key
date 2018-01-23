@@ -108,6 +108,8 @@ memory_realloc(
     int new_amount
 ) {
     void *new_region = realloc(region, new_amount);
+    fprintf(stderr, "memory_realloc(%p, %d, %d); // old_region = %p, new_region = %p, old_amount = %d, new_amount = %d\n",
+            region, new_region, old_amount, new_amount);
     if(new_region && new_amount > old_amount) {
         memset(region + old_amount, 0, new_amount - old_amount);
     }
