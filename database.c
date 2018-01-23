@@ -158,10 +158,6 @@ unsigned char *database_pages_alloc(
                     return 0;
                 }
 
-                if(last_free_page) {
-                    offset += (new_page_count - page_count) * ctx_main->system_page_size;
-                }
-
                 unsigned int new_page_usage_length = PTBL_CALC_PAGE_USAGE_LENGTH(bucket) * new_page_count;
                 ptbl->page_usage = memory_realloc(ptbl->page_usage, sizeof(unsigned char) * ptbl->page_usage_length, sizeof(unsigned char) * new_page_usage_length);
                 ptbl->page_usage_length = new_page_usage_length;
@@ -172,6 +168,11 @@ unsigned char *database_pages_alloc(
 
                 ptbl->m_offset = offset;
                 PTBL_RECORD_SET_PAGE_COUNT(ptbl[0], new_page_count);
+
+                // This needs to be done AFTER setting ptbl->m_offset to the right page base
+                if(last_free_page) {
+                    offset += (new_page_count - page_count) * ctx_main->system_page_size;
+                }
             }
 
             return offset;
