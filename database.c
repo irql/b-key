@@ -76,13 +76,15 @@ unsigned char *database_pages_alloc(
                 return 0;
             }
 
-            //fprintf(stderr, "\ndatabase_pages_alloc(.., %d, %d);\n", page_count, bucket);
+            fprintf(stderr, "\ndatabase_pages_alloc(.., %d, %d);\n", page_count, bucket);
+            fprintf(stderr, "\tpage_usage_length=%d\n", ptbl->page_usage_length);
             // TODO: MUST CHECK page_count REQUESTED AND NOT JUST RETURN THE FIRST PAGE
             unsigned char *offset = 0;
             int i = 0,
                 free_pages = 0,
                 bits = (256 >> bucket),
-                bytes = PTBL_CALC_PAGE_USAGE_LENGTH(bucket);
+                bytes = PTBL_CALC_PAGE_USAGE_LENGTH(bucket),
+                last_free_page = 0;
 
             for(; i < ptbl->page_usage_length / bytes; i++) {
                 int j = 0, free = 0;
@@ -90,7 +92,7 @@ unsigned char *database_pages_alloc(
                 if(bits >= 64) {
                     unsigned long *subset = (unsigned long *)(&ptbl->page_usage[i * bytes]);
                     for(; j < bytes / 8; j++) {
-                        //fprintf(stderr, "%d(%d): %016lx\n", i, j, subset[j]);
+                        fprintf(stderr, "%d(%d)[%d]: %016lx\n", i, j, (i * bytes + ((j + 1) * 8)), subset[j]);
                         if(subset[j] == 0) {
                             free++;
                         }
@@ -118,6 +120,7 @@ unsigned char *database_pages_alloc(
                     }
                 }
                 else {
+                    fprintf(stderr, "Bits %d\n", bits);
                     // TODO: Bitwise needed for bucket >= 6
                     // Bucket 6 (1024-byte values) = 4 bits per page
                     // Bucket 7 (2048-byte values) = 2 bits per page
@@ -126,23 +129,25 @@ unsigned char *database_pages_alloc(
 
                 if(free > 0 && j > 0 && free == j) {
                     free_pages++;
+                    last_free_page = i;
                 }
                 else {
-                    free_pages = 0;
+                    free_pages = last_free_page = 0;
                 }
 
                 if(free_pages == page_count) {
                     //offset = ptbl->m_offset + (i - (page_count - 1)) * ctx_main->system_page_size;
                     offset = ptbl->m_offset + ((i - (page_count - 1)) << 12);
+                    last_free_page = 0;
                     //fprintf(stderr, "Offset decided = %p (%dB, page bucket starts %p)\n", offset, offset - ptbl->m_offset, ptbl->m_offset);
                     break;
                 }
             }
 
             // TODO: Reclaim empty pages at the very end of alloc'd region
-            if(!offset) {
+            if(!offset || last_free_page) {
                 // Realloc (add) more pages
-                int new_page_count = PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) + page_count;
+                int new_page_count = PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) + page_count - (last_free_page ? free_pages : 0);
                 offset = memory_page_realloc(
                         ctx_main,
                         ptbl->m_offset,
@@ -153,8 +158,13 @@ unsigned char *database_pages_alloc(
                     return 0;
                 }
 
+                if(last_free_page) {
+                    offset += (new_page_count - page_count) * ctx_main->system_page_size;
+                }
+
                 ptbl->page_usage_length = PTBL_CALC_PAGE_USAGE_LENGTH(bucket) * new_page_count;
-                ptbl->page_usage = memory_realloc(ptbl->page_usage, sizeof(unsigned char) * ptbl->page_usage_length);
+                ptbl->page_usage = memory_realloc(ptbl->page_usage, sizeof(unsigned char) * page_count, sizeof(unsigned char) * ptbl->page_usage_length);
+                fprintf(stderr, "\tIncreased size of page_usage: %d\n", ptbl->page_usage_length);
                 if(!ptbl->page_usage) {
                     return 0;
                 }
@@ -171,8 +181,10 @@ unsigned char *database_pages_alloc(
                 (Record_ptbl *)
                 memory_realloc(
                     rec_database->ptbl_record_tbl,
-                    (++rec_database->ptbl_record_count) * sizeof(Record_ptbl)
+                    rec_database->ptbl_record_count * sizeof(Record_ptbl),
+                    rec_database->ptbl_record_count * sizeof(Record_ptbl)
                     );
+            rec_database->ptbl_record_count++;
             if(!new_ptbl) {
                 fprintf(stderr, "database_alloc_pages(..%d..): Failed to realloc database->ptbl_record_tbl\n", bucket);
                 return 0;

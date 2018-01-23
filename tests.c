@@ -104,11 +104,11 @@ int run_tests(struct main_context * main_context) {
     }
 
     int i = 0;
-    for(; (1 << i) < main_context->system_phys_page_count; i++) {
+    /*for(; (1 << i) < main_context->system_phys_page_count; i++) {
         test_page_alloc(main_context, (1 << i));
     }
 
-    /* Don't do this unless you're masochistic
+    * Don't do this unless you're masochistic
 
     fprintf(stderr, "Attempting to allocate all but 65536 pyshical pages in the system\n");
     if(!test_memory_alloc(main_context, main_context->system_phys_page_count - 0x10000))
@@ -138,7 +138,7 @@ int run_tests(struct main_context * main_context) {
     database->ptbl_record_tbl = 0;
 
     // TODO: Support buckets > 5
-    for(i = 0; i <= 5; i++) {
+    for(i = 0; i <= 20; i++) {
         // Alloc a new bucket
         unsigned char *page_base = database_pages_alloc(main_context, database, 10, i);
         if(!page_base) {
@@ -171,13 +171,15 @@ int run_tests(struct main_context * main_context) {
         }
 
         // Test that we can allocate j free pages in a bucket correctly when page (j - 1) is in use
-        // TODO: Support buckets > 5
         int j = 1;
-        for(; j <= 5; j++) {
+        for(; j <= 10; j++) {
             int k = 0;
+
+            // TODO: Support buckets > 5
             for(; k < 10; k++)
                 database->ptbl_record_tbl[i].page_usage[(32 >> i) * k] = 0;
             database->ptbl_record_tbl[i].page_usage[(32 >> i) * (j - 1)] = 1;
+
             new_page_base = database_pages_alloc(main_context, database, j, i);
             if(new_page_base != page_base + main_context->system_page_size * j) {
                 fprintf(stderr, "Bucket %d failed realloc(%d): %p != %p\n", i, j, new_page_base, page_base + (j * main_context->system_page_size));

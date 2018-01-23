@@ -17,6 +17,7 @@ memory_page_alloc(
     struct main_context *main_context,
     int page_count
 ) {
+    fprintf(stderr, "memory_page_alloc(..., %d);\n", page_count);
     if(page_count > 0) {
         unsigned char *region =
             mmap(NULL,
@@ -103,7 +104,12 @@ memory_free(
 unsigned char *
 memory_realloc(
     void *region,
+    int old_amount,
     int new_amount
 ) {
-    return realloc(region, new_amount);
+    void *new_region = realloc(region, new_amount);
+    if(new_region && new_amount > old_amount) {
+        memset(region + old_amount, 0, new_amount - old_amount);
+    }
+    return new_region;
 }

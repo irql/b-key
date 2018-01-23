@@ -32,5 +32,6 @@ memory_free(
 unsigned char *
 memory_realloc(
     void *region,
+    int old_amount,
     int new_amount
     );
