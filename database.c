@@ -162,8 +162,9 @@ unsigned char *database_pages_alloc(
                     offset += (new_page_count - page_count) * ctx_main->system_page_size;
                 }
 
-                ptbl->page_usage_length = PTBL_CALC_PAGE_USAGE_LENGTH(bucket) * new_page_count;
-                ptbl->page_usage = memory_realloc(ptbl->page_usage, sizeof(unsigned char) * page_count, sizeof(unsigned char) * ptbl->page_usage_length);
+                unsigned int new_page_usage_length = PTBL_CALC_PAGE_USAGE_LENGTH(bucket) * new_page_count;
+                ptbl->page_usage = memory_realloc(ptbl->page_usage, sizeof(unsigned char) * ptbl->page_usage_length, sizeof(unsigned char) * new_page_usage_length);
+                ptbl->page_usage_length = new_page_usage_length;
                 fprintf(stderr, "\tIncreased size of page_usage: %d\n", ptbl->page_usage_length);
                 if(!ptbl->page_usage) {
                     return 0;
