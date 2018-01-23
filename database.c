@@ -179,14 +179,15 @@ unsigned char *database_pages_alloc(
         }
         else {
             // Create new ptbl record to init bucket
+            unsigned int new_ptbl_record_count = rec_database->ptbl_record_count + 1;
             Record_ptbl *new_ptbl =
                 (Record_ptbl *)
                 memory_realloc(
                     rec_database->ptbl_record_tbl,
                     rec_database->ptbl_record_count * sizeof(Record_ptbl),
-                    rec_database->ptbl_record_count * sizeof(Record_ptbl)
+                    new_ptbl_record_count * sizeof(Record_ptbl)
                     );
-            rec_database->ptbl_record_count++;
+            rec_database->ptbl_record_count = new_ptbl_record_count;
             if(!new_ptbl) {
                 fprintf(stderr, "database_alloc_pages(..%d..): Failed to realloc database->ptbl_record_tbl\n", bucket);
                 return 0;
