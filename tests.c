@@ -138,7 +138,7 @@ int run_tests(struct main_context * main_context) {
     database->ptbl_record_tbl = 0;
 
     // TODO: Support buckets > 5
-    for(i = 0; i <= 20; i++) {
+    for(i = 0; i <= 5; i++) {
         // Alloc a new bucket
         unsigned char *page_base = database_pages_alloc(main_context, database, 10, i);
         if(!page_base) {
@@ -180,9 +180,14 @@ int run_tests(struct main_context * main_context) {
                 database->ptbl_record_tbl[i].page_usage[(32 >> i) * k] = 0;
             database->ptbl_record_tbl[i].page_usage[(32 >> i) * (j - 1)] = 1;
 
+            unsigned int old_page_count = database->ptbl_record_tbl[i].page_usage_length;
+            unsigned int expected_new_page_count = (32 >> i) * 2 + old_page_count;
+
             new_page_base = database_pages_alloc(main_context, database, j, i);
-            if(new_page_base != page_base + main_context->system_page_size * j) {
-                fprintf(stderr, "Bucket %d failed realloc(%d): %p != %p\n", i, j, new_page_base, page_base + (j * main_context->system_page_size));
+            unsigned int new_page_count = database->ptbl_record_tbl[i].page_usage_length;
+
+            if(!new_page_base || (j > 5 && new_page_count != expected_new_page_count)) {
+                fprintf(stderr, "Bucket %d failed realloc(%d): %d != %d\n", i, j, new_page_count, expected_new_page_count);
                 return 0;
             }
         }
