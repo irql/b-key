@@ -46,7 +46,7 @@ memory_page_realloc(
     int old_page_count,
     int page_count
 ) {
-    if(page_count > 0 && page_count > 0) {
+    if(old_page_count > 0 && page_count > 0) {
         unsigned char *region =
             mremap(offset,
                     main_context->system_page_size * old_page_count,
@@ -54,7 +54,7 @@ memory_page_realloc(
                     MREMAP_MAYMOVE
                   );
         if(region == MAP_FAILED) {
-            fprintf(stderr, "memory_page_realloc(): %s\n", strerror(errno));
+            fprintf(stderr, "memory_page_realloc(%p, %d, %d): %s\n", offset, old_page_count, page_count, strerror(errno));
             return 0;
         }
         else {
@@ -111,7 +111,7 @@ memory_realloc(
     fprintf(stderr, "memory_realloc(); // old_region = %p, new_region = %p, old_amount = %d, new_amount = %d\n",
             region, new_region, old_amount, new_amount);
     if(new_region && new_amount > old_amount) {
-        memset(region + old_amount, 0, new_amount - old_amount);
+        memset(new_region + old_amount, 0, new_amount - old_amount);
     }
     return new_region;
 }
