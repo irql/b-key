@@ -10,14 +10,22 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "debug.h"
 #include "context.h"
+
+#ifdef DEBUG_MEMORY
+    #define DEBUG_PRINT(...) \
+        fprintf(stderr, __VA_ARGS__)
+#else
+    #define DEBUG_PRINT(...)
+#endif
 
 unsigned char *
 memory_page_alloc(
     struct main_context *main_context,
     int page_count
 ) {
-    fprintf(stderr, "memory_page_alloc(..., %d);\n", page_count);
+    DEBUG_PRINT("memory_page_alloc(..., %d);\n", page_count);
     if(page_count > 0) {
         unsigned char *region =
             mmap(NULL,
@@ -46,7 +54,7 @@ memory_page_realloc(
     int old_page_count,
     int page_count
 ) {
-    fprintf(stderr, "memory_page_realloc(%p, %d, %d);\n", offset, old_page_count, page_count);
+    DEBUG_PRINT("memory_page_realloc(%p, %d, %d);\n", offset, old_page_count, page_count);
     if(old_page_count > 0 && page_count > 0) {
         unsigned char *region =
             mremap(offset,
@@ -55,7 +63,7 @@ memory_page_realloc(
                     MREMAP_MAYMOVE
                   );
         if(region == MAP_FAILED) {
-            fprintf(stderr, "memory_page_realloc() failed: %s\n", strerror(errno));
+            DEBUG_PRINT("memory_page_realloc() failed: %s\n", strerror(errno));
             return 0;
         }
         else {
@@ -63,7 +71,7 @@ memory_page_realloc(
         }
     }
 
-    fprintf(stderr, "memory_page_realloc(): Both old and new page count must be >0\n");
+    DEBUG_PRINT("memory_page_realloc(): Both old and new page count must be >0\n");
 
     return 0;
 }
@@ -109,7 +117,7 @@ memory_realloc(
     int new_amount
 ) {
     void *new_region = realloc(region, new_amount);
-    fprintf(stderr, "memory_realloc(); // old_region = %p, new_region = %p, old_amount = %d, new_amount = %d\n",
+    DEBUG_PRINT("memory_realloc(); // old_region = %p, new_region = %p, old_amount = %d, new_amount = %d\n",
             region, new_region, old_amount, new_amount);
     if(new_region && new_amount > old_amount) {
         memset(new_region + old_amount, 0, new_amount - old_amount);
