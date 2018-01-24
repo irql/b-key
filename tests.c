@@ -180,14 +180,30 @@ int run_tests(struct main_context * main_context) {
                 database->ptbl_record_tbl[i].page_usage[(32 >> i) * k] = 0;
             database->ptbl_record_tbl[i].page_usage[(32 >> i) * (j - 1)] = 1;
 
-            unsigned int old_page_count = database->ptbl_record_tbl[i].page_usage_length;
-            unsigned int expected_new_page_count = (32 >> i) * 2 + old_page_count;
+            unsigned int old_page_count = PTBL_RECORD_GET_PAGE_COUNT(database->ptbl_record_tbl[i]);
+            unsigned int old_page_usage_length = database->ptbl_record_tbl[i].page_usage_length;
+
+            // Since we allocated 10 pages in the beginning, it makes sense for new allocations
+            // of a length < 5 to not need to expand the page table persay, because they will
+            // be able to fit into the free space between pages.
+            unsigned int expected_new_page_usage_length = (j > 5 ) ? (32 >> i) * 2 + old_page_usage_length : old_page_usage_length;
+            unsigned int expected_new_page_count = (j > 5) ? 2 + old_page_count : old_page_count;
 
             new_page_base = database_pages_alloc(main_context, database, j, i);
-            unsigned int new_page_count = database->ptbl_record_tbl[i].page_usage_length;
 
-            if(!new_page_base || (j > 5 && new_page_count != expected_new_page_count)) {
-                fprintf(stderr, "Bucket %d failed realloc(%d): %d != %d\n", i, j, new_page_count, expected_new_page_count);
+            unsigned int new_page_count = PTBL_RECORD_GET_PAGE_COUNT(database->ptbl_record_tbl[i]);
+            unsigned int new_page_usage_length = database->ptbl_record_tbl[i].page_usage_length;
+
+            if(!new_page_base) {
+                fprintf(stderr, "Bucket %d failed realloc(%d): New page base is null\n");
+                return 0;
+            }
+            if(new_page_usage_length != expected_new_page_usage_length) {
+                fprintf(stderr, "Bucket %d failed realloc(%d): New page usage length %d != %d\n", i, j, new_page_usage_length, expected_new_page_usage_length);
+                return 0;
+            }
+            if(new_page_count != expected_new_page_count) {
+                fprintf(stderr, "Bucket %d failed realloc(%d): New page count %d != %d\n", i, j, new_page_count, expected_new_page_count);
                 return 0;
             }
         }
