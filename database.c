@@ -88,20 +88,19 @@ unsigned char *database_pages_alloc(
 
             DEBUG_PRINT("\ndatabase_pages_alloc(.., %d, %d);\n", page_count, bucket);
             DEBUG_PRINT("\tpage_usage_length=%d\n", ptbl->page_usage_length);
-            // TODO: MUST CHECK page_count REQUESTED AND NOT JUST RETURN THE FIRST PAGE
             unsigned char *offset = 0;
             int i = 0,
                 free_pages = 0,
-                bits = (256 >> bucket),
+                bits = (bucket < 8) ? (256 >> bucket) : 1,
                 bytes = PTBL_CALC_PAGE_USAGE_LENGTH(bucket),
                 last_free_page = 0;
 
-            for(; i < ptbl->page_usage_length / bytes; i++) {
+            for(i = 0; i < ptbl->page_usage_length / bytes; i++) {
                 int j = 0, free = 0;
 
                 if(bits >= 64) {
                     unsigned long *subset = (unsigned long *)(&ptbl->page_usage[i * bytes]);
-                    for(; j < bytes / 8; j++) {
+                    for(j = 0; j < bytes / 8; j++) {
                         DEBUG_PRINT("%d(%d)[%d]: %016lx\n", i, j, (i * bytes + ((j + 1) * 8)), subset[j]);
                         if(subset[j] == 0) {
                             free++;
@@ -129,14 +128,33 @@ unsigned char *database_pages_alloc(
                         free = j = 1;
                     }
                 }
+                else if(bits == 4) {
+                    unsigned char usage[2];
+                    usage[0] = ptbl->page_usage[i] & 0xF;
+                    usage[1] = (ptbl->page_usage[i] & 0xF0) >> 4;
+                    DEBUG_PRINT("%d: %d\n%d: %d\n", (i * (8 / bits)), usage[0], (i * (8 / bits)) + 1, usage[1]);
+                    if(usage[0] == 0) {
+                        free++;
+                        j = 0;
+                    }
+                    if(usage[1] == 0) {
+                        free++;
+                        j = 1;
+                    }
+                }
                 else {
                     DEBUG_PRINT("Bits %d\n", bits);
+
                     // TODO: Bitwise needed for bucket >= 6
-                    // Bucket 6 (1024-byte values) = 4 bits per page
-                    // Bucket 7 (2048-byte values) = 2 bits per page
-                    // Bucket >= 8 (>= 4096-byte values) = 1 bit per page
+                    // Bucket 6 (1024-byte values) = 4 bits per page (2 pages per byte)
+                    // Bucket 7 (2048-byte values) = 2 bits per page (4 pages per byte)
+                    // Bucket >= 8 (>= 4096-byte values) = 1 bit per page (8 pages per byte)
                 }
 
+                if(bits < 5 && free > 0) {
+                    free_pages += free;
+                    last_free_page = i * (8 / bits) + j;
+                }
                 if(free > 0 && j > 0 && free == j) {
                     free_pages++;
                     last_free_page = i;
@@ -145,9 +163,9 @@ unsigned char *database_pages_alloc(
                     free_pages = last_free_page = 0;
                 }
 
-                if(free_pages == page_count) {
+                if(free_pages >= page_count) {
                     //offset = ptbl->m_offset + (i - (page_count - 1)) * ctx_main->system_page_size;
-                    offset = ptbl->m_offset + ((i - (page_count - 1)) << 12);
+                    offset = ptbl->m_offset + (((bits < 5 ? (i * (8 / bits) + j) : i) - (page_count - 1)) << 12);
                     last_free_page = 0;
                     DEBUG_PRINT("Offset decided = %p (%dB, page bucket starts %p)\n", offset, offset - ptbl->m_offset, ptbl->m_offset);
                     break;
