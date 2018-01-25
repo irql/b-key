@@ -31,7 +31,17 @@ int database_ptbl_calc_page_usage_length(
     int bucket,
     int page_count
 ) {
-    return 0;
+    unsigned int length = 0;
+
+    if(bucket < 6) {
+        length = ((bucket < 5) ? (32 >> bucket) : 1) * page_count;
+    }
+    else {
+        int bits = (bucket < 8) ? (256 >> bucket) : 1;
+        length = ((page_count * bits) / 8) + (((page_count * bits) % 8) > 0 ? 1 : 0);
+    }
+
+    return length;
 }
 
 void database_ptbl_init(
@@ -40,14 +50,7 @@ void database_ptbl_init(
     int page_count,
     int bucket
 ) {
-    int bytes = PTBL_CALC_PAGE_USAGE_LENGTH(bucket);
-    if(bucket < 6) {
-        ptbl_entry->page_usage_length = bytes * page_count;
-    }
-    else {
-        int bits = (bucket < 8) ? (256 >> bucket) : 1;
-        ptbl_entry->page_usage_length = (page_count * bits / 8) + (((page_count * bits) % 8) > 0 ? 1 : 0);
-    }
+    ptbl_entry->page_usage_length = database_ptbl_calc_page_usage_length(bucket, page_count);
 
     DEBUG_PRINT("database_ptbl_init(): Bucket %d: Bytes %d\n", bucket, ptbl_entry->page_usage_length);
 
@@ -101,6 +104,8 @@ unsigned char *database_pages_alloc(
 
             DEBUG_PRINT("\ndatabase_pages_alloc(.., %d, %d);\n", page_count, bucket);
             DEBUG_PRINT("\tpage_usage_length=%d\n", ptbl->page_usage_length);
+            DEBUG_PRINT("\tpage_count=%d\n", PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]));
+
             unsigned char *offset = 0;
             int i = 0,
                 free_pages = 0,
@@ -199,7 +204,7 @@ unsigned char *database_pages_alloc(
                     return 0;
                 }
 
-                unsigned int new_page_usage_length = PTBL_CALC_PAGE_USAGE_LENGTH(bucket) * new_page_count;
+                unsigned int new_page_usage_length = database_ptbl_calc_page_usage_length(bucket, new_page_count);
                 ptbl->page_usage = memory_realloc(ptbl->page_usage, sizeof(unsigned char) * ptbl->page_usage_length, sizeof(unsigned char) * new_page_usage_length);
                 ptbl->page_usage_length = new_page_usage_length;
                 DEBUG_PRINT("\tIncreased size of page_usage: %d\n", ptbl->page_usage_length);
