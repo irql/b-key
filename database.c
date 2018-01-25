@@ -27,7 +27,8 @@ database_ptbl_search(
     return record;
 }
 
-int database_ptbl_calc_page_usage_length(
+int
+database_ptbl_calc_page_usage_length(
     int bucket,
     int page_count
 ) {
@@ -51,8 +52,6 @@ void database_ptbl_init(
     int bucket
 ) {
     ptbl_entry->page_usage_length = database_ptbl_calc_page_usage_length(bucket, page_count);
-
-    DEBUG_PRINT("database_ptbl_init(): Bucket %d: Bytes %d\n", bucket, ptbl_entry->page_usage_length);
 
     // Leave page_usage bits zero, they will be set/unset
     // upon the storage or deletion of individual k/v pairs
@@ -109,8 +108,8 @@ unsigned char *database_pages_alloc(
             unsigned char *offset = 0;
             int i = 0,
                 free_pages = 0,
-                bits = (bucket < 8) ? (256 >> bucket) : 1,
-                bytes = PTBL_CALC_PAGE_USAGE_LENGTH(bucket),
+                bits = PTBL_CALC_PAGE_USAGE_BITS(bucket),
+                bytes = PTBL_CALC_PAGE_USAGE_BYTES(bucket),
                 last_free_page = 0;
 
             for(i = 0; i < ptbl->page_usage_length / bytes; i++) {
@@ -118,7 +117,7 @@ unsigned char *database_pages_alloc(
 
                 if(bits >= 64) {
                     unsigned long *subset = (unsigned long *)(&ptbl->page_usage[i * bytes]);
-                    for(j = 0; j < bytes / 8; j++) {
+                    for(j = 0; j < bytes / sizeof(unsigned long); j++) {
                         DEBUG_PRINT("%d(%d)[%d]: %016lx\n", i, j, (i * bytes + ((j + 1) * 8)), subset[j]);
                         if(subset[j] == 0) {
                             free++;
@@ -153,11 +152,11 @@ unsigned char *database_pages_alloc(
                     DEBUG_PRINT("%d: %d\n%d: %d\n", (i * (8 / bits)), usage[0], (i * (8 / bits)) + 1, usage[1]);
                     if(usage[0] == 0) {
                         free++;
-                        j = 0;
+                        j = 1;
                     }
                     if(usage[1] == 0) {
                         free++;
-                        j = 1;
+                        j = 2;
                     }
                 }
                 else {
@@ -169,21 +168,22 @@ unsigned char *database_pages_alloc(
                     // Bucket >= 8 (>= 4096-byte values) = 1 bit per page (8 pages per byte)
                 }
 
-                if(bits < 5 && free > 0) {
+                if(bits < 8 && free > 0) {
                     free_pages += free;
-                    last_free_page = i * (8 / bits) + j;
+                    last_free_page = i * (8 / bits) + (j - free);
                 }
-                if(free > 0 && j > 0 && free == j) {
+                else if(free > 0 && j > 0 && free == j) {
                     free_pages++;
                     last_free_page = i;
                 }
                 else {
+                    // free_pages counts contiguous free pages
                     free_pages = last_free_page = 0;
                 }
 
                 if(free_pages >= page_count) {
                     //offset = ptbl->m_offset + (i - (page_count - 1)) * ctx_main->system_page_size;
-                    offset = ptbl->m_offset + (((bits < 5 ? (i * (8 / bits) + j) : i) - (page_count - 1)) << 12);
+                    offset = ptbl->m_offset + (((bits < 5 ? ((i * (8 / bits)) + j - 1 - (free_pages - page_count)) : i) - (page_count - 1)) << 12);
                     last_free_page = 0;
                     DEBUG_PRINT("Offset decided = %p (%dB, page bucket starts %p)\n", offset, offset - ptbl->m_offset, ptbl->m_offset);
                     break;

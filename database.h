@@ -26,3 +26,8 @@ int database_alloc_kv(
     unsigned long size,
     unsigned long *buffer
     );
+
+int database_ptbl_calc_page_usage_length(
+    int bucket,
+    int page_count
+    );

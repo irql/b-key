@@ -154,7 +154,7 @@ int run_tests(struct main_context * main_context) {
             fprintf(stderr, "Bucket %d page count incorrect (%d != 10)\n", i, count);
             return 0;
         }
-        if((count = database->ptbl_record_tbl[i].page_usage_length) != (count2 = PTBL_CALC_PAGE_USAGE_LENGTH(i) * 10)) {
+        if((count = database->ptbl_record_tbl[i].page_usage_length) != (count2 = database_ptbl_calc_page_usage_length(i, 10))) {
             fprintf(stderr, "Bucket %d failed to alloc correct amount for page_usage (%d != %d)\n", i, count, count2);
             return 0;
         }
@@ -174,25 +174,32 @@ int run_tests(struct main_context * main_context) {
         int j = 1;
         for(; j <= 10; j++) {
             int k = 0;
-
-            // TODO: Support buckets > 5
-            for(; k < 10; k++)
-                database->ptbl_record_tbl[i].page_usage[(32 >> i) * k] = 0;
-            database->ptbl_record_tbl[i].page_usage[(32 >> i) * (j - 1)] = 1;
+            int bits = (i < 8) ? (256 >> i) : 1;
 
             unsigned int old_page_count = PTBL_RECORD_GET_PAGE_COUNT(database->ptbl_record_tbl[i]);
             unsigned int old_page_usage_length = database->ptbl_record_tbl[i].page_usage_length;
 
+            // TODO: Support buckets > 5
+            if(i <= 5) {
+                for(; k < old_page_count; k++)
+                    database->ptbl_record_tbl[i].page_usage[(32 >> i) * k] = 0;
+                database->ptbl_record_tbl[i].page_usage[(32 >> i) * (j - 1)] = 1;
+            }
+            else {
+                int slice = 8 / bits;
+                for(; k < old_page_count; k++) {
+                    database->ptbl_record_tbl[i].page_usage[k / slice] = 0;
+                }
+                database->ptbl_record_tbl[i].page_usage[(j - 1) / slice] |= (1 << (((j - 1) % slice) * bits));
+            }
+
             // Since we allocated 10 pages in the beginning, it makes sense for new allocations
             // of a length < 5 to not need to expand the page table persay, because they will
             // be able to fit into the free space between pages.
-            unsigned int expected_new_page_usage_length = (j > 5 ) ?
-                (32 >> i) * 2 + old_page_usage_length :
-                old_page_usage_length;
             unsigned int expected_new_page_count = (j > 5) ? 2 + old_page_count : old_page_count;
+            unsigned int expected_new_page_usage_length = database_ptbl_calc_page_usage_length(i, expected_new_page_count);
 
             if(i > 5 && j > 5) {
-                int bits = (i < 8) ? (256 >> i) : 1;
                 expected_new_page_count = (((old_page_count + 1)* bits) / 8) + ((((old_page_count + 1) * bits) % 8) > 0 ? 1 : 0);
             }
 
