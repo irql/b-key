@@ -186,8 +186,15 @@ int run_tests(struct main_context * main_context) {
             // Since we allocated 10 pages in the beginning, it makes sense for new allocations
             // of a length < 5 to not need to expand the page table persay, because they will
             // be able to fit into the free space between pages.
-            unsigned int expected_new_page_usage_length = (j > 5 ) ? (32 >> i) * 2 + old_page_usage_length : old_page_usage_length;
+            unsigned int expected_new_page_usage_length = (j > 5 ) ?
+                (32 >> i) * 2 + old_page_usage_length :
+                old_page_usage_length;
             unsigned int expected_new_page_count = (j > 5) ? 2 + old_page_count : old_page_count;
+
+            if(i > 5 && j > 5) {
+                int bits = (i < 8) ? (256 >> i) : 1;
+                expected_new_page_count = (((old_page_count + 1)* bits) / 8) + ((((old_page_count + 1) * bits) % 8) > 0 ? 1 : 0);
+            }
 
             new_page_base = database_pages_alloc(main_context, database, j, i);
 

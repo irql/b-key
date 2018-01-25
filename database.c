@@ -27,6 +27,13 @@ database_ptbl_search(
     return record;
 }
 
+int database_ptbl_calc_page_usage_length(
+    int bucket,
+    int page_count
+) {
+    return 0;
+}
+
 void database_ptbl_init(
     Context_main *ctx_main,
     Record_ptbl *ptbl_entry,
@@ -34,7 +41,13 @@ void database_ptbl_init(
     int bucket
 ) {
     int bytes = PTBL_CALC_PAGE_USAGE_LENGTH(bucket);
-    ptbl_entry->page_usage_length = bytes * page_count;
+    if(bucket < 6) {
+        ptbl_entry->page_usage_length = bytes * page_count;
+    }
+    else {
+        int bits = (bucket < 8) ? (256 >> bucket) : 1;
+        ptbl_entry->page_usage_length = (page_count * bits / 8) + (((page_count * bits) % 8) > 0 ? 1 : 0);
+    }
 
     DEBUG_PRINT("database_ptbl_init(): Bucket %d: Bytes %d\n", bucket, ptbl_entry->page_usage_length);
 
