@@ -137,8 +137,8 @@ int run_tests(struct main_context * main_context) {
     memory_free(database->ptbl_record_tbl);
     database->ptbl_record_tbl = 0;
 
-    // TODO: Support buckets > 5
-    for(i = 0; i <= 6; i++) {
+    // TODO: Support buckets > 7
+    for(i = 0; i <= 7; i++) {
         // Alloc a new bucket
         unsigned char *page_base = database_pages_alloc(main_context, database, 10, i);
         if(!page_base) {

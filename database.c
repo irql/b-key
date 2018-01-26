@@ -173,6 +173,37 @@ unsigned char *database_pages_alloc(
                     }
                     DEBUG_PRINT("Free pages: %d, last_free_page: %d\n", free_pages, last_free_page);
                 }
+                else if(bits == 2) {
+                    unsigned char usage[4];
+                    usage[0] = ptbl->page_usage[i] & 3;
+                    usage[1] = ptbl->page_usage[i] & 6;
+                    usage[2] = ptbl->page_usage[i] & 12;
+                    usage[3] = ptbl->page_usage[i] & 24;
+
+                    DEBUG_PRINT("%d: %d\n%d: %d\n%d: %d\n%d: %d\n",
+                            (i * (8 / bits)), usage[0],
+                            (i * (8 / bits)) + 1, usage[1],
+                            (i * (8 / bits)) + 2, usage[2],
+                            (i * (8 / bits)) + 3, usage[3]);
+
+                    int l;
+                    for(l = 0; l < 4; l++) {
+                        if(usage[l] == 0) {
+                            free++;
+                            j = l + 1;
+                        }
+                        else {
+                            free = free_pages = last_free_page = 0;
+                        }
+                    }
+
+                    if(free > 0) {
+                        free_pages += free;
+                        last_free_page = i * (8/bits) + (j-free);
+                    }
+
+                    DEBUG_PRINT("Free pages: %d, last_free_page: %d\n", free_pages, last_free_page);
+                }
                 else {
                     DEBUG_PRINT("Bits %d\n", bits);
 
@@ -195,7 +226,7 @@ unsigned char *database_pages_alloc(
 
                 if(free_pages >= page_count) {
                     //offset = ptbl->m_offset + (i - (page_count - 1)) * ctx_main->system_page_size;
-                    offset = ptbl->m_offset + (((bits < 5 ? ((i * (8 / bits)) + j - 1 - (free_pages - page_count)) : i) - (page_count - 1)) << 12);
+                    offset = ptbl->m_offset + (((bits < 8 ? ((i * (8 / bits)) + j - 1 - (free_pages - page_count)) : i) - (page_count - 1)) << 12);
                     last_free_page = 0;
                     DEBUG_PRINT("Offset decided = %p (%dB, page bucket starts %p)\n", offset, offset - ptbl->m_offset, ptbl->m_offset);
                     break;
