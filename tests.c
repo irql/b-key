@@ -12,6 +12,7 @@ int test_page_alloc(struct main_context * main_context, int pages) {
     unsigned char * region = memory_page_alloc(main_context, pages);
     if(region) {
         fprintf(stderr, "free(%p)'d %s\n", region, memory_page_free(main_context, region, pages) == -1 ? strerror(errno) : "OK");
+        return 1;
     }
     else {
         fprintf(stderr, "Failed to allocate\n");
@@ -70,7 +71,7 @@ int run_tests(struct main_context * main_context) {
 
     KV_RECORD_SET_FLAGS(kv_record, 0xffff);
     if(0xFF00000000000000 != kv_record.flags_and_size) {
-        fprintf(stderr, "Flags set past boundary: %p\n", kv_record.flags_and_size);
+        fprintf(stderr, "Flags set past boundary: %lx\n", kv_record.flags_and_size);
         return 0;
     }
 
@@ -162,7 +163,7 @@ int run_tests(struct main_context * main_context) {
         // Alloc a page in the same bucket (should be same result as first time because bucket will be empty)
         unsigned char *new_page_base = database_pages_alloc(main_context, database, 1, i);
         if(!new_page_base) {
-            fprintf(stderr, "Bucket %d failed realloc: %p => %p\n", page_base, new_page_base);
+            fprintf(stderr, "Bucket %d failed realloc: %p => %p\n", i, page_base, new_page_base);
             return 0;
         }
         if(new_page_base != page_base) {
@@ -205,7 +206,7 @@ int run_tests(struct main_context * main_context) {
             unsigned int new_page_usage_length = database->ptbl_record_tbl[i].page_usage_length;
 
             if(!new_page_base) {
-                fprintf(stderr, "Bucket %d failed realloc(%d): New page base is null\n");
+                fprintf(stderr, "Bucket %d failed realloc(%d): New page base is null\n", i, j);
                 return 0;
             }
             if(new_page_usage_length != expected_new_page_usage_length) {

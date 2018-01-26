@@ -5,10 +5,7 @@
 #include "context.h"
 #include "memory.h"
 
-#ifdef DEBUG_DATABASE
-    #define DEBUG_PRINT(...) \
-        fprintf(stderr, __VA_ARGS__)
-#else
+#ifndef DEBUG_DATABASE
     #define DEBUG_PRINT(...)
 #endif
 
@@ -228,7 +225,7 @@ unsigned char *database_pages_alloc(
                     //offset = ptbl->m_offset + (i - (page_count - 1)) * ctx_main->system_page_size;
                     offset = ptbl->m_offset + (((bits < 8 ? ((i * (8 / bits)) + j - 1 - (free_pages - page_count)) : i) - (page_count - 1)) << 12);
                     last_free_page = 0;
-                    DEBUG_PRINT("Offset decided = %p (%dB, page bucket starts %p)\n", offset, offset - ptbl->m_offset, ptbl->m_offset);
+                    DEBUG_PRINT("Offset decided = %p (%ldB, page bucket starts %p)\n", offset, offset - ptbl->m_offset, ptbl->m_offset);
                     break;
                 }
             }
@@ -323,4 +320,5 @@ int database_alloc_kv(
     // Allocate based on page-table mappings
     // If no page table exists for records of
     // a given size, create one.
+    return 0;
 }

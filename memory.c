@@ -10,14 +10,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "os.h"
 #include "debug.h"
 #include "context.h"
 
-#ifdef DEBUG_MEMORY
-    #define DEBUG_PRINT(...) \
-        fprintf(stderr, __VA_ARGS__)
-#else
-    #define DEBUG_PRINT(...)
+#ifndef DEBUG_MEMORY
+#define DEBUG_PRINT(...)
 #endif
 
 unsigned char *
@@ -56,12 +54,24 @@ memory_page_realloc(
 ) {
     DEBUG_PRINT("memory_page_realloc(%p, %d, %d);\n", offset, old_page_count, page_count);
     if(old_page_count > 0 && page_count > 0) {
+#ifdef __MACOSX__
+        // There is no "mremap()" in MAC OS, and thus it will never have performant page reallocation :(
+        munmap(offset, main_context->system_page_size * old_page_count);
+        unsigned char *region =
+            mmap(NULL,
+                    main_context->system_page_size * page_count,
+                    PROT_READ | PROT_WRITE,
+                    MAP_ANONYMOUS | MAP_PRIVATE,
+                    -1,
+                    0);
+#else
         unsigned char *region =
             mremap(offset,
                     main_context->system_page_size * old_page_count,
                     main_context->system_page_size * page_count,
                     MREMAP_MAYMOVE
                   );
+#endif
         if(region == MAP_FAILED) {
             DEBUG_PRINT("memory_page_realloc() failed: %s\n", strerror(errno));
             return 0;
