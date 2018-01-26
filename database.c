@@ -175,10 +175,10 @@ unsigned char *database_pages_alloc(
                 }
                 else if(bits == 2) {
                     unsigned char usage[4];
-                    usage[0] = ptbl->page_usage[i] & 3;
-                    usage[1] = ptbl->page_usage[i] & 6;
-                    usage[2] = ptbl->page_usage[i] & 12;
-                    usage[3] = ptbl->page_usage[i] & 24;
+                    usage[0] = ptbl->page_usage[i] & 0x3;
+                    usage[1] = (ptbl->page_usage[i] & 0xC) >> 2;
+                    usage[2] = (ptbl->page_usage[i] & 0x30) >> 4;
+                    usage[3] = (ptbl->page_usage[i] & 0xC0) >> 6;
 
                     DEBUG_PRINT("%d: %d\n%d: %d\n%d: %d\n%d: %d\n",
                             (i * (8 / bits)), usage[0],
@@ -186,6 +186,7 @@ unsigned char *database_pages_alloc(
                             (i * (8 / bits)) + 2, usage[2],
                             (i * (8 / bits)) + 3, usage[3]);
 
+                    // TODO: Don't check pages that don't exist yet
                     int l;
                     for(l = 0; l < 4; l++) {
                         if(usage[l] == 0) {
