@@ -192,11 +192,7 @@ int run_tests(struct main_context * main_context) {
                 for(k = 0; k < old_page_count; k++) {
                     database->ptbl_record_tbl[i].page_usage[k / slice] = 0;
                 }
-
-                unsigned char mask = (1 << (((j - 1) % slice) * bits));
-                database->ptbl_record_tbl[i].page_usage[(j - 1) / slice] |= mask;
-
-                fprintf(stderr, "\nSetting %d |= %02x", (j - 1)/slice, mask);
+                database->ptbl_record_tbl[i].page_usage[(j - 1) / slice] |= (1 << (((j - 1) % slice) * bits));
             }
 
             // Since we allocated 10 pages in the beginning, it makes sense for new allocations

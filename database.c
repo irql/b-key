@@ -180,15 +180,10 @@ unsigned char *database_pages_alloc(
                     usage[2] = (ptbl->page_usage[i] & 0x30) >> 4;
                     usage[3] = (ptbl->page_usage[i] & 0xC0) >> 6;
 
-                    DEBUG_PRINT("%d: %d\n%d: %d\n%d: %d\n%d: %d\n",
-                            (i * (8 / bits)), usage[0],
-                            (i * (8 / bits)) + 1, usage[1],
-                            (i * (8 / bits)) + 2, usage[2],
-                            (i * (8 / bits)) + 3, usage[3]);
-
                     // TODO: Don't check pages that don't exist yet
-                    int l;
-                    for(l = 0; l < 4; l++) {
+                    int l, max = (ptbl->page_usage_length / bytes) - 1;
+                    for(l = 0; l < ((i == max) ? (4 - (PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) % 4)) : 4); l++) {
+                        DEBUG_PRINT("%d: %d\n", (i * (8 / bits)) + l, usage[l]);
                         if(usage[l] == 0) {
                             free++;
                             j = l + 1;
