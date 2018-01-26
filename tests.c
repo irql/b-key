@@ -179,16 +179,17 @@ int run_tests(struct main_context * main_context) {
 
             unsigned int old_page_count = PTBL_RECORD_GET_PAGE_COUNT(database->ptbl_record_tbl[i]);
             unsigned int old_page_usage_length = database->ptbl_record_tbl[i].page_usage_length;
+            unsigned char *old_page_base = new_page_base;
 
             // TODO: Support buckets > 6
             if(i <= 5) {
-                for(; k < old_page_count; k++)
+                for(k = 0; k < old_page_count; k++)
                     database->ptbl_record_tbl[i].page_usage[(32 >> i) * k] = 0;
                 database->ptbl_record_tbl[i].page_usage[(32 >> i) * (j - 1)] = 1;
             }
             else {
                 int slice = 8 / bits;
-                for(; k < old_page_count; k++) {
+                for(k = 0; k < old_page_count; k++) {
                     database->ptbl_record_tbl[i].page_usage[k / slice] = 0;
                 }
                 database->ptbl_record_tbl[i].page_usage[(j - 1) / slice] |= (1 << (((j - 1) % slice) * bits));
@@ -199,6 +200,9 @@ int run_tests(struct main_context * main_context) {
             // be able to fit into the free space between pages.
             unsigned int expected_new_page_count = (j > 5) ? 2 + old_page_count : old_page_count;
             unsigned int expected_new_page_usage_length = (j > 5) ? database_ptbl_calc_page_usage_length(i, expected_new_page_count) : old_page_usage_length;
+            // Because we expect new_page_base to change entirely when it needs to remap the
+            // pages because of MREMAP_MAYMOVE, we ignore this check (using -1) if j > 5
+            unsigned char *expected_new_page_base = (j > 5) ? (unsigned char *)-1 : old_page_base + main_context->system_page_size;
 
             new_page_base = database_pages_alloc(main_context, database, j, i);
 
@@ -207,6 +211,10 @@ int run_tests(struct main_context * main_context) {
 
             if(!new_page_base) {
                 fprintf(stderr, "Bucket %d failed realloc(%d): New page base is null\n", i, j);
+                return 0;
+            }
+            if(expected_new_page_base != (unsigned char *)-1 && new_page_base != expected_new_page_base) {
+                fprintf(stderr, "Bucket %d failed realloc(%d): New page base %p != %p\n", i, j, new_page_base, expected_new_page_base);
                 return 0;
             }
             if(new_page_usage_length != expected_new_page_usage_length) {
