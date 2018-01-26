@@ -115,6 +115,7 @@ unsigned char *database_pages_alloc(
             for(i = 0; i < ptbl->page_usage_length / bytes; i++) {
                 int j = 0, free = 0;
 
+                // Multiple bytes per page
                 if(bits >= 64) {
                     unsigned long *subset = (unsigned long *)(&ptbl->page_usage[i * bytes]);
                     for(j = 0; j < bytes / sizeof(unsigned long); j++) {
@@ -124,7 +125,6 @@ unsigned char *database_pages_alloc(
                         }
                     }
                 }
-                // little locks and keys :)
                 else if(bits == 32) {
                     unsigned usage = ((unsigned *)ptbl->page_usage)[i];
                     DEBUG_PRINT("%d: %08x\n", i, usage);
@@ -145,6 +145,8 @@ unsigned char *database_pages_alloc(
                         free = j = 1;
                     }
                 }
+
+                // Multiple pages per byte
                 else if(bits == 4) {
                     unsigned char usage[2];
                     usage[0] = ptbl->page_usage[i] & 0xF;
@@ -154,10 +156,22 @@ unsigned char *database_pages_alloc(
                         free++;
                         j = 1;
                     }
+                    else {
+                        free = free_pages = last_free_page = 0;
+                    }
                     if(usage[1] == 0) {
                         free++;
                         j = 2;
                     }
+                    else {
+                        free = free_pages = last_free_page = 0;
+                    }
+
+                    if(free > 0) {
+                        free_pages += free;
+                        last_free_page = i * (8/bits) + (j - free);
+                    }
+                    DEBUG_PRINT("Free pages: %d, last_free_page: %d\n", free_pages, last_free_page);
                 }
                 else {
                     DEBUG_PRINT("Bits %d\n", bits);
@@ -168,17 +182,15 @@ unsigned char *database_pages_alloc(
                     // Bucket >= 8 (>= 4096-byte values) = 1 bit per page (8 pages per byte)
                 }
 
-                if(bits < 8 && free > 0) {
-                    free_pages += free;
-                    last_free_page = i * (8 / bits) + (j - free);
-                }
-                else if(free > 0 && j > 0 && free == j) {
-                    free_pages++;
-                    last_free_page = i;
-                }
-                else {
-                    // free_pages counts contiguous free pages
-                    free_pages = last_free_page = 0;
+                if(bits > 4) {
+                    if(free > 0 && j > 0 && free == j) {
+                        free_pages++;
+                        last_free_page = i;
+                    }
+                    else {
+                        // free_pages counts contiguous free pages
+                        free_pages = last_free_page = 0;
+                    }
                 }
 
                 if(free_pages >= page_count) {
@@ -190,10 +202,10 @@ unsigned char *database_pages_alloc(
                 }
             }
 
-            // TODO: Reclaim empty pages at the very end of alloc'd region
+            // TODO: What if page 0 IS actually last_free_page?
             if(!offset || last_free_page) {
                 // Realloc (add) more pages
-                int new_page_count = PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) + page_count - (last_free_page ? free_pages : 0);
+                int new_page_count = PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) + page_count - free_pages;
                 offset = memory_page_realloc(
                         ctx_main,
                         ptbl->m_offset,

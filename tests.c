@@ -199,10 +199,6 @@ int run_tests(struct main_context * main_context) {
             unsigned int expected_new_page_count = (j > 5) ? 2 + old_page_count : old_page_count;
             unsigned int expected_new_page_usage_length = database_ptbl_calc_page_usage_length(i, expected_new_page_count);
 
-            if(i > 5 && j > 5) {
-                expected_new_page_count = (((old_page_count + 1)* bits) / 8) + ((((old_page_count + 1) * bits) % 8) > 0 ? 1 : 0);
-            }
-
             new_page_base = database_pages_alloc(main_context, database, j, i);
 
             unsigned int new_page_count = PTBL_RECORD_GET_PAGE_COUNT(database->ptbl_record_tbl[i]);
