@@ -107,7 +107,7 @@ unsigned char *database_pages_alloc(
                 free_pages = 0,
                 bits = PTBL_CALC_PAGE_USAGE_BITS(bucket),
                 bytes = PTBL_CALC_PAGE_USAGE_BYTES(bucket),
-                last_free_page = 0;
+                last_free_page = -1;
 
             for(i = 0; i < ptbl->page_usage_length / bytes; i++) {
                 int j = 0, free = 0;
@@ -154,19 +154,22 @@ unsigned char *database_pages_alloc(
                         j = 1;
                     }
                     else {
-                        free = free_pages = last_free_page = 0;
+                        free = free_pages = 0;
+                        last_free_page = -1;
                     }
                     if(usage[1] == 0) {
                         free++;
                         j = 2;
                     }
                     else {
-                        free = free_pages = last_free_page = 0;
+                        free = free_pages = 0;
+                        last_free_page = -1;
                     }
 
                     if(free > 0) {
                         free_pages += free;
-                        last_free_page = i * (8/bits) + (j - free);
+                        if(last_free_page == -1)
+                            last_free_page = i * (8/bits) + (j - free);
                     }
                     DEBUG_PRINT("Free pages: %d, last_free_page: %d\n", free_pages, last_free_page);
                 }
@@ -190,13 +193,15 @@ unsigned char *database_pages_alloc(
                             j = l + 1;
                         }
                         else {
-                            free = free_pages = last_free_page = 0;
+                            free = free_pages = 0;
+                            last_free_page = -1;
                         }
                     }
 
                     if(free > 0) {
                         free_pages += free;
-                        last_free_page = i * (8/bits) + (j-free);
+                        if(last_free_page == -1)
+                            last_free_page = i * (8/bits) + (j-free);
                     }
 
                     DEBUG_PRINT("Free pages: %d, last_free_page: %d\n", free_pages, last_free_page);
@@ -217,21 +222,21 @@ unsigned char *database_pages_alloc(
                     }
                     else {
                         // free_pages counts contiguous free pages
-                        free_pages = last_free_page = 0;
+                        free_pages = 0;
+                        last_free_page = -1;
                     }
                 }
 
                 if(free_pages >= page_count) {
                     //offset = ptbl->m_offset + (i - (page_count - 1)) * ctx_main->system_page_size;
                     offset = ptbl->m_offset + (((bits < 8 ? ((i * (8 / bits)) + j - 1 - (free_pages - page_count)) : i) - (page_count - 1)) << 12);
-                    last_free_page = 0;
+                    last_free_page = -1;
                     DEBUG_PRINT("Offset decided = %p (%ldB, page bucket starts %p)\n", offset, offset - ptbl->m_offset, ptbl->m_offset);
                     break;
                 }
             }
 
-            // TODO: What if page 0 IS actually last_free_page?
-            if(!offset || last_free_page) {
+            if(!offset || last_free_page != -1) {
                 // Realloc (add) more pages
                 int new_page_count = PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) + page_count - free_pages;
                 offset = memory_page_realloc(
@@ -256,7 +261,7 @@ unsigned char *database_pages_alloc(
                 PTBL_RECORD_SET_PAGE_COUNT(ptbl[0], new_page_count);
 
                 // This needs to be done AFTER setting ptbl->m_offset to the right page base
-                if(last_free_page) {
+                if(last_free_page != -1) {
                     offset += (new_page_count - page_count) * ctx_main->system_page_size;
                 }
             }
@@ -303,6 +308,11 @@ void database_pages_free(
         for(; i < rec_database->ptbl_record_count; i++) {
             if(rec_database->ptbl_record_tbl[i].page_usage) {
                 memory_free(rec_database->ptbl_record_tbl[i].page_usage);
+                memory_page_free(
+                        ctx_main,
+                        rec_database->ptbl_record_tbl[i].m_offset,
+                        PTBL_RECORD_GET_PAGE_COUNT(rec_database->ptbl_record_tbl[i])
+                        );
             }
         }
         memory_free(rec_database->ptbl_record_tbl);

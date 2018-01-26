@@ -138,8 +138,8 @@ int run_tests(struct main_context * main_context) {
     memory_free(database->ptbl_record_tbl);
     database->ptbl_record_tbl = 0;
 
-    // TODO: Support buckets > 7
-    for(i = 0; i <= 7; i++) {
+    // TODO: Support buckets > 6
+    for(i = 0; i <= 6; i++) {
         // Alloc a new bucket
         unsigned char *page_base = database_pages_alloc(main_context, database, 10, i);
         if(!page_base) {
@@ -180,7 +180,7 @@ int run_tests(struct main_context * main_context) {
             unsigned int old_page_count = PTBL_RECORD_GET_PAGE_COUNT(database->ptbl_record_tbl[i]);
             unsigned int old_page_usage_length = database->ptbl_record_tbl[i].page_usage_length;
 
-            // TODO: Support buckets > 5
+            // TODO: Support buckets > 6
             if(i <= 5) {
                 for(; k < old_page_count; k++)
                     database->ptbl_record_tbl[i].page_usage[(32 >> i) * k] = 0;
@@ -198,7 +198,7 @@ int run_tests(struct main_context * main_context) {
             // of a length < 5 to not need to expand the page table persay, because they will
             // be able to fit into the free space between pages.
             unsigned int expected_new_page_count = (j > 5) ? 2 + old_page_count : old_page_count;
-            unsigned int expected_new_page_usage_length = database_ptbl_calc_page_usage_length(i, expected_new_page_count);
+            unsigned int expected_new_page_usage_length = (j > 5) ? database_ptbl_calc_page_usage_length(i, expected_new_page_count) : old_page_usage_length;
 
             new_page_base = database_pages_alloc(main_context, database, j, i);
 
