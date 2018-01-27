@@ -135,8 +135,7 @@ int run_tests(struct main_context * main_context) {
         return 0;
     }
 
-    memory_free(database->ptbl_record_tbl);
-    database->ptbl_record_tbl = 0;
+    database_pages_free(main_context, database);
 
     for(i = 0; i <= 8; i++) {
         // Alloc a new bucket
@@ -228,6 +227,8 @@ int run_tests(struct main_context * main_context) {
     }
 
     database_pages_free(main_context, database);
+
+    // TODO: Add test cases for K/V pair storing
     memory_free(database);
 
     return 1;
