@@ -15,7 +15,8 @@
 #include "context.h"
 
 #ifndef DEBUG_MEMORY
-#define DEBUG_PRINT(...)
+    #undef DEBUG_PRINT
+    #define DEBUG_PRINT(...)
 #endif
 
 unsigned char *
@@ -23,7 +24,7 @@ memory_page_alloc(
     struct main_context *main_context,
     int page_count
 ) {
-    DEBUG_PRINT("memory_page_alloc(..., %d);\n", page_count);
+    DEBUG_PRINT("memory_page_alloc(page_count = %d);\n", page_count);
     if(page_count > 0) {
         unsigned char *region =
             mmap(NULL,
@@ -52,7 +53,7 @@ memory_page_realloc(
     int old_page_count,
     int page_count
 ) {
-    DEBUG_PRINT("memory_page_realloc(%p, %d, %d);\n", offset, old_page_count, page_count);
+    DEBUG_PRINT("memory_page_realloc(offset = %p, old_page_count = %d, new_page_count = %d);\n", offset, old_page_count, page_count);
     if(old_page_count > 0 && page_count > 0) {
 #ifdef __MACOSX__
         // There is no "mremap()" in MAC OS, and thus it will never have performant page reallocation :(
@@ -91,6 +92,7 @@ int memory_page_free(
     unsigned char *region,
     int page_count
 ) {
+    DEBUG_PRINT("memory_page_free(region = %p, page_count = %d);\n", region, page_count);
     if(page_count > 0) {
         return munmap(region, page_count * main_context->system_page_size);
     }
@@ -103,6 +105,7 @@ unsigned char *
 memory_alloc(
     int amount
 ) {
+    DEBUG_PRINT("memory_alloc(%d);\n", amount);
     if(amount > 0) {
         unsigned char *region = malloc(amount);
         memset(region, 0, amount);
@@ -117,6 +120,7 @@ void
 memory_free(
     void *record
 ) {
+    DEBUG_PRINT("memory_free(record = %p);\n", record);
     free(record);
 }
 
@@ -127,8 +131,8 @@ memory_realloc(
     int new_amount
 ) {
     void *new_region = realloc(region, new_amount);
-    DEBUG_PRINT("memory_realloc(); // old_region = %p, new_region = %p, old_amount = %d, new_amount = %d\n",
-            region, new_region, old_amount, new_amount);
+    DEBUG_PRINT("%p = memory_realloc(old_region = %p, old_amount = %d, new_amount = %d);\n",
+            new_region, region, old_amount, new_amount);
     if(new_region && new_amount > old_amount) {
         memset(new_region + old_amount, 0, new_amount - old_amount);
     }

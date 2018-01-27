@@ -6,6 +6,7 @@
 #include "memory.h"
 
 #ifndef DEBUG_DATABASE
+    #undef DEBUG_PRINT
     #define DEBUG_PRINT(...)
 #endif
 
@@ -48,11 +49,13 @@ void database_ptbl_init(
     int page_count,
     int bucket
 ) {
-    ptbl_entry->page_usage_length = database_ptbl_calc_page_usage_length(bucket, page_count);
+    ptbl_entry->page_usage_length =
+        database_ptbl_calc_page_usage_length(bucket, page_count);
 
     // Leave page_usage bits zero, they will be set/unset
     // upon the storage or deletion of individual k/v pairs
-    ptbl_entry->page_usage = memory_alloc(sizeof(unsigned char) * ptbl_entry->page_usage_length);
+    ptbl_entry->page_usage =
+        memory_alloc(sizeof(unsigned char) * ptbl_entry->page_usage_length);
 
     PTBL_RECORD_SET_KEY(ptbl_entry[0], bucket);
 
@@ -90,7 +93,8 @@ unsigned char *database_pages_alloc(
     if(rec_database->ptbl_record_tbl) {
         // Database ptbl_record_tbl exists
 
-        Record_ptbl *ptbl = database_ptbl_search(ctx_main, rec_database, bucket);
+        Record_ptbl *ptbl =
+            database_ptbl_search(ctx_main, rec_database, bucket);
 
         if(ptbl) {
             if(!ptbl->m_offset) {
@@ -149,25 +153,34 @@ unsigned char *database_pages_alloc(
                     // Bucket 7 (2048-byte values) = 2 bits per page (4 pages per byte)
                     // Bucket >= 8 (>= 4096-byte values) = 1 bit per page (8 pages per byte)
 
-                    int l, split = 8 / bits;
+                    // ppb = pages per byte
+                    int k, ppb = 8 / bits;
+
+                    // max - all the bits in a byte aren't always in use if page_count
+                    // divided by pages per byte has a remainder (the remainder is the
+                    // number of bit-groups to continue processing).
                     int max = (i == ((ptbl->page_usage_length / bytes) - 1)) ?
                         (
-                         (PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) % split) > 0 ?
-                         (PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) % split) :
-                         split
-                        ) : split;
+                         (PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) % ppb) > 0 ?
+                            (PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) % ppb) :
+                            ppb // return ppb if there is no remainder (all bit groups in use)
+                        ) : ppb;
 
                     unsigned char mask =
                         (bits == 4) ? 0xF :
                         (bits == 2) ? 0x3 :
                         (bits == 1) ? 1 : 0;
 
-                    for(l = 0; l < max; l++) {
-                        unsigned char usage = ((ptbl->page_usage[i] & (mask << (bits * l))) >> (bits * l));
-                        DEBUG_PRINT("%d: %d\n", (i * (8 / bits)) + l, usage);
+                    for(k = 0; k < max; k++) {
+                        unsigned char usage =
+                            (
+                             (ptbl->page_usage[i] & (mask << (bits * k)))
+                             >> (bits * k)
+                            );
+                        DEBUG_PRINT("%d: %d\n", (i * (8 / bits)) + k, usage);
                         if(usage == 0) {
                             free++;
-                            j = l + 1;
+                            j = k + 1;
                         }
                         else {
                             free = free_pages = 0;
@@ -178,7 +191,7 @@ unsigned char *database_pages_alloc(
                     if(free > 0) {
                         free_pages += free;
                         if(last_free_page == -1)
-                            last_free_page = i * split + (j - free);
+                            last_free_page = i * ppb + (j - free);
                     }
 
                     DEBUG_PRINT("Free pages: %d, last_free_page: %d\n", free_pages, last_free_page);
