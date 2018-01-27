@@ -144,47 +144,23 @@ unsigned char *database_pages_alloc(
                 }
 
                 // Multiple pages per byte
-                else if(bits == 4) {
-                    unsigned char usage[2];
-                    usage[0] = ptbl->page_usage[i] & 0xF;
-                    usage[1] = (ptbl->page_usage[i] & 0xF0) >> 4;
-                    DEBUG_PRINT("%d: %d\n%d: %d\n", (i * (8 / bits)), usage[0], (i * (8 / bits)) + 1, usage[1]);
-                    if(usage[0] == 0) {
-                        free++;
-                        j = 1;
-                    }
-                    else {
-                        free = free_pages = 0;
-                        last_free_page = -1;
-                    }
-                    if(usage[1] == 0) {
-                        free++;
-                        j = 2;
-                    }
-                    else {
-                        free = free_pages = 0;
-                        last_free_page = -1;
-                    }
+                else {
+                    // Bucket 6 (1024-byte values) = 4 bits per page (2 pages per byte)
+                    // Bucket 7 (2048-byte values) = 2 bits per page (4 pages per byte)
+                    // Bucket >= 8 (>= 4096-byte values) = 1 bit per page (8 pages per byte)
 
-                    if(free > 0) {
-                        free_pages += free;
-                        if(last_free_page == -1)
-                            last_free_page = i * (8/bits) + (j - free);
-                    }
-                    DEBUG_PRINT("Free pages: %d, last_free_page: %d\n", free_pages, last_free_page);
-                }
-                else if(bits == 2) {
-                    unsigned char usage[4];
-                    usage[0] = ptbl->page_usage[i] & 0x3;
-                    usage[1] = (ptbl->page_usage[i] & 0xC) >> 2;
-                    usage[2] = (ptbl->page_usage[i] & 0x30) >> 4;
-                    usage[3] = (ptbl->page_usage[i] & 0xC0) >> 6;
-
-                    // TODO: Don't check pages that don't exist yet
-                    int l, max = (ptbl->page_usage_length / bytes) - 1;
-                    for(l = 0; l < ((i == max) ? (4 - (PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) % 4)) : 4); l++) {
-                        DEBUG_PRINT("%d: %d\n", (i * (8 / bits)) + l, usage[l]);
-                        if(usage[l] == 0) {
+                    int l, split = 8 / bits;
+                    int max = (i == ((ptbl->page_usage_length / bytes) - 1)) ?
+                        (
+                         (PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) % split) > 0 ? (PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) % split) : split) : split;
+                    unsigned char mask =
+                        (bits == 4) ? 0xF :
+                        (bits == 2) ? 0x3 :
+                        (bits == 1) ? 1 : 0;
+                    for(l = 0; l < max; l++) {
+                        unsigned char usage = ((ptbl->page_usage[i] & (mask << (bits * l))) >> (bits * l));
+                        DEBUG_PRINT("%d: %d\n", (i * (8 / bits)) + l, usage);
+                        if(usage == 0) {
                             free++;
                             j = l + 1;
                         }
@@ -201,14 +177,6 @@ unsigned char *database_pages_alloc(
                     }
 
                     DEBUG_PRINT("Free pages: %d, last_free_page: %d\n", free_pages, last_free_page);
-                }
-                else {
-                    DEBUG_PRINT("Bits %d\n", bits);
-
-                    // TODO: Bitwise needed for bucket >= 6
-                    // Bucket 6 (1024-byte values) = 4 bits per page (2 pages per byte)
-                    // Bucket 7 (2048-byte values) = 2 bits per page (4 pages per byte)
-                    // Bucket >= 8 (>= 4096-byte values) = 1 bit per page (8 pages per byte)
                 }
 
                 if(bits > 4) {
