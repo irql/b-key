@@ -138,7 +138,6 @@ int run_tests(struct main_context * main_context) {
     memory_free(database->ptbl_record_tbl);
     database->ptbl_record_tbl = 0;
 
-    // TODO: Support buckets > 6
     for(i = 0; i <= 8; i++) {
         // Alloc a new bucket
         unsigned char *page_base = database_pages_alloc(main_context, database, 10, i);
@@ -181,7 +180,6 @@ int run_tests(struct main_context * main_context) {
             unsigned int old_page_usage_length = database->ptbl_record_tbl[i].page_usage_length;
             unsigned char *old_page_base = new_page_base;
 
-            // TODO: Support buckets > 6
             if(i <= 5) {
                 for(k = 0; k < old_page_count; k++)
                     database->ptbl_record_tbl[i].page_usage[(32 >> i) * k] = 0;
@@ -200,6 +198,7 @@ int run_tests(struct main_context * main_context) {
             // be able to fit into the free space between pages.
             unsigned int expected_new_page_count = (j > 5) ? 2 + old_page_count : old_page_count;
             unsigned int expected_new_page_usage_length = (j > 5) ? database_ptbl_calc_page_usage_length(i, expected_new_page_count) : old_page_usage_length;
+
             // Because we expect new_page_base to change entirely when it needs to remap the
             // pages because of MREMAP_MAYMOVE, we ignore this check (using -1) if j > 5
             unsigned char *expected_new_page_base = (j > 5) ? (unsigned char *)-1 : old_page_base + main_context->system_page_size;

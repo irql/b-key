@@ -152,11 +152,16 @@ unsigned char *database_pages_alloc(
                     int l, split = 8 / bits;
                     int max = (i == ((ptbl->page_usage_length / bytes) - 1)) ?
                         (
-                         (PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) % split) > 0 ? (PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) % split) : split) : split;
+                         (PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) % split) > 0 ?
+                         (PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) % split) :
+                         split
+                        ) : split;
+
                     unsigned char mask =
                         (bits == 4) ? 0xF :
                         (bits == 2) ? 0x3 :
                         (bits == 1) ? 1 : 0;
+
                     for(l = 0; l < max; l++) {
                         unsigned char usage = ((ptbl->page_usage[i] & (mask << (bits * l))) >> (bits * l));
                         DEBUG_PRINT("%d: %d\n", (i * (8 / bits)) + l, usage);
@@ -173,7 +178,7 @@ unsigned char *database_pages_alloc(
                     if(free > 0) {
                         free_pages += free;
                         if(last_free_page == -1)
-                            last_free_page = i * (8/bits) + (j-free);
+                            last_free_page = i * split + (j - free);
                     }
 
                     DEBUG_PRINT("Free pages: %d, last_free_page: %d\n", free_pages, last_free_page);
@@ -202,6 +207,7 @@ unsigned char *database_pages_alloc(
 
             if(!offset || last_free_page != -1) {
                 // Realloc (add) more pages
+                // TODO: Decide if we want to support buckets > 8 (i.e. bucket x after 8 holds 4096 * (1 << (x - 8)) )
                 int new_page_count = PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) + page_count - free_pages;
                 offset = memory_page_realloc(
                         ctx_main,
