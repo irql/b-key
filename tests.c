@@ -9,6 +9,9 @@
 #include "database.h"
 #include "debug.h"
 
+#undef DEBUG_PRINT
+#define DEBUG_PRINT(...)
+
 enum {
     TEST_FAILED,
     TEST_SUCCESS
@@ -35,17 +38,18 @@ int test_page_alloc(struct main_context * main_context, int pages) {
 }
 
 void test_start(Test_context *ctx, char *desc) {
-    fprintf(stderr, "%d. %s... ", ++ctx->count, desc);
+    DEBUG_PRINT("%d. %s... ", ++ctx->count, desc);
     ctx->status = TEST_SUCCESS;
 }
 
 void test_stop(Test_context *ctx) {
     if(ctx->status == TEST_FAILED) {
+        // Don't ignore a test failure
         fprintf(stderr, "FAIL: %s\n", ctx->reason);
         exit(1);
     }
     else if(ctx->status == TEST_SUCCESS) {
-        fprintf(stderr, "OK\n");
+        DEBUG_PRINT("OK\n");
     }
 }
 
@@ -197,38 +201,52 @@ int run_tests(struct main_context * main_context) {
 
     for(i = 0; i <= 8; i++) {
         // Alloc a new bucket
+        test_start(ctx, "Allocate a new bucket");
         unsigned char *page_base = database_pages_alloc(main_context, database, 10, i);
-        test_start(ctx, "database_pages_alloc()");
         if(!page_base) {
-            ctx->reason = "Failed to allocate 10 pages for bucket %d";
+            ctx->reason = "Failed to allocate 10 pages for bucket";
             ctx->status = TEST_FAILED;
         }
         test_stop(ctx);
 
+        test_start(ctx, "Correct ptbl_record_count");
         if(database->ptbl_record_count != i + 1) {
-            DEBUG_PRINT("Incorrect ptbl record count (bucket %d)\n", i);
-            return 0;
+            ctx->reason = "Incorrect ptbl record count";
+            ctx->status = TEST_FAILED;
         }
+        test_stop(ctx);
+
         unsigned int count, count2;
+
+        test_start(ctx, "Correct page_count");
         if((count = PTBL_RECORD_GET_PAGE_COUNT(database->ptbl_record_tbl[i])) != 10) {
-            DEBUG_PRINT("Bucket %d page count incorrect (%d != 10)\n", i, count);
-            return 0;
+            ctx->reason = "Page count incorrect";
+            ctx->status = TEST_FAILED;
         }
+        test_stop(ctx);
+
+        test_start(ctx, "Correct page_usage_length");
         if((count = database->ptbl_record_tbl[i].page_usage_length) != (count2 = database_ptbl_calc_page_usage_length(i, 10))) {
-            DEBUG_PRINT("Bucket %d failed to alloc correct amount for page_usage (%d != %d)\n", i, count, count2);
-            return 0;
+            ctx->reason = "Bucket %d failed to alloc correct amount for page_usage (%d != %d)";
+            ctx->status = TEST_FAILED;
         }
+        test_stop(ctx);
 
         // Alloc a page in the same bucket (should be same result as first time because bucket will be empty)
+        test_start(ctx, "Allocate new page in empty space");
         unsigned char *new_page_base = database_pages_alloc(main_context, database, 1, i);
         if(!new_page_base) {
-            DEBUG_PRINT("Bucket %d failed realloc: %p => %p\n", i, page_base, new_page_base);
-            return 0;
+            ctx->reason = "Bucket %d failed realloc: %p => %p";
+            ctx->status = TEST_FAILED;
         }
+        test_stop(ctx);
+
+        test_start(ctx, "New page base == old page base");
         if(new_page_base != page_base) {
-            DEBUG_PRINT("Bucket %d mmap()d new page when it shouldn't have", i);
-            return 0;
+            ctx->reason = "mmap()d new page when it shouldn't have";
+            ctx->status = TEST_FAILED;
         }
+        test_stop(ctx);
 
         // Test that we can allocate j free pages in a bucket correctly when page (j - 1) is in use
         int j = 1;
@@ -268,22 +286,27 @@ int run_tests(struct main_context * main_context) {
             unsigned int new_page_count = PTBL_RECORD_GET_PAGE_COUNT(database->ptbl_record_tbl[i]);
             unsigned int new_page_usage_length = database->ptbl_record_tbl[i].page_usage_length;
 
+            test_start(ctx, "Correct new_page_base");
             if(!new_page_base) {
-                DEBUG_PRINT("Bucket %d failed realloc(%d): New page base is null\n", i, j);
-                return 0;
+                ctx->reason = "New page base is null";
+                ctx->status = TEST_FAILED;
             }
             if(expected_new_page_base != (unsigned char *)-1 && new_page_base != expected_new_page_base) {
-                DEBUG_PRINT("Bucket %d failed realloc(%d): New page base %p != %p\n", i, j, new_page_base, expected_new_page_base);
-                return 0;
+                ctx->reason = "New page base is incorrect";
+                ctx->status = TEST_FAILED;
             }
+            test_stop(ctx);
+
+            test_start(ctx, "Correct new_page_usage_length");
             if(new_page_usage_length != expected_new_page_usage_length) {
-                DEBUG_PRINT("Bucket %d failed realloc(%d): New page usage length %d != %d\n", i, j, new_page_usage_length, expected_new_page_usage_length);
-                return 0;
+                ctx->reason = "New page usage length %d != %d";
+                ctx->status = TEST_FAILED;
             }
             if(new_page_count != expected_new_page_count) {
-                DEBUG_PRINT("Bucket %d failed realloc(%d): New page count %d != %d\n", i, j, new_page_count, expected_new_page_count);
-                return 0;
+                ctx->reason = "New page count %d != %d";
+                ctx->status = TEST_FAILED;
             }
+            test_stop(ctx);
         }
     }
 
