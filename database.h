@@ -5,9 +5,11 @@ database_ptbl_search(
     int bucket
     );
 
-unsigned char *database_pages_alloc(
+unsigned char *
+database_pages_alloc(
     Context_main *ctx_main,
     Record_database *rec_database,
+    Record_ptbl **rec_ptbl,
     int page_count,
     int bucket
     );

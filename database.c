@@ -80,9 +80,11 @@ void database_ptbl_init(
 // Returns:
 //  ptr64 on success
 //  0 on failure
-unsigned char *database_pages_alloc(
+unsigned char *
+database_pages_alloc(
     Context_main *ctx_main,
     Record_database *rec_database,
+    Record_ptbl **rec_ptbl,
     int page_count,
     int bucket
 ) {
@@ -240,6 +242,7 @@ unsigned char *database_pages_alloc(
                     return 0;
                 }
 
+                // If the OS assigns us a new virtual address, we need to record that
                 ptbl->m_offset = offset;
                 PTBL_RECORD_SET_PAGE_COUNT(ptbl[0], new_page_count);
 
@@ -249,6 +252,7 @@ unsigned char *database_pages_alloc(
                 }
             }
 
+            if(rec_ptbl) rec_ptbl[0] = ptbl;
             return offset;
         }
         else {
@@ -271,6 +275,8 @@ unsigned char *database_pages_alloc(
             Record_ptbl *ptbl_entry = &rec_database->ptbl_record_tbl[rec_database->ptbl_record_count - 1];
 
             database_ptbl_init(ctx_main, ptbl_entry, page_count, bucket);
+
+            if(rec_ptbl) rec_ptbl[0] = ptbl_entry;
             return ptbl_entry->m_offset;
         }
     }

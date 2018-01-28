@@ -200,11 +200,19 @@ int run_tests(struct main_context * main_context) {
     database_pages_free(main_context, database);
 
     for(i = 0; i <= 8; i++) {
+        Record_ptbl *ptbl_entry;
         // Alloc a new bucket
         test_start(ctx, "Allocate a new bucket");
-        unsigned char *page_base = database_pages_alloc(main_context, database, 10, i);
+        unsigned char *page_base = database_pages_alloc(main_context, database, &ptbl_entry, 10, i);
         if(!page_base) {
             ctx->reason = "Failed to allocate 10 pages for bucket";
+            ctx->status = TEST_FAILED;
+        }
+        test_stop(ctx);
+
+        test_start(ctx, "Correct ptbl_entry");
+        if(PTBL_RECORD_GET_KEY(ptbl_entry[0]) != i) {
+            ctx->reason = "Incorrect entry";
             ctx->status = TEST_FAILED;
         }
         test_stop(ctx);
@@ -234,7 +242,7 @@ int run_tests(struct main_context * main_context) {
 
         // Alloc a page in the same bucket (should be same result as first time because bucket will be empty)
         test_start(ctx, "Allocate new page in empty space");
-        unsigned char *new_page_base = database_pages_alloc(main_context, database, 1, i);
+        unsigned char *new_page_base = database_pages_alloc(main_context, database, 0, 1, i);
         if(!new_page_base) {
             ctx->reason = "Bucket %d failed realloc: %p => %p";
             ctx->status = TEST_FAILED;
@@ -281,7 +289,7 @@ int run_tests(struct main_context * main_context) {
             // pages because of MREMAP_MAYMOVE, we ignore this check (using -1) if j > 5
             unsigned char *expected_new_page_base = (j > 5) ? (unsigned char *)-1 : old_page_base + main_context->system_page_size;
 
-            new_page_base = database_pages_alloc(main_context, database, j, i);
+            new_page_base = database_pages_alloc(main_context, database, 0, j, i);
 
             unsigned int new_page_count = PTBL_RECORD_GET_PAGE_COUNT(database->ptbl_record_tbl[i]);
             unsigned int new_page_usage_length = database->ptbl_record_tbl[i].page_usage_length;
@@ -321,7 +329,6 @@ int run_tests(struct main_context * main_context) {
         }
         test_stop(ctx);
     }
-
 
     memory_free(database);
 
