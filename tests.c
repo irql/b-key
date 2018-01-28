@@ -211,9 +211,10 @@ int run_tests(struct main_context * main_context) {
         test_stop(ctx);
 
         test_start(ctx, "Correct ptbl_entry");
-        if(PTBL_RECORD_GET_KEY(ptbl_entry[0]) != i) {
+        if(!ptbl_entry || PTBL_RECORD_GET_KEY(ptbl_entry[0]) != i) {
             ctx->reason = "Incorrect entry";
             ctx->status = TEST_FAILED;
+            DEBUG_PRINT("(%p && %d == %d)\n", ptbl_entry, PTBL_RECORD_GET_KEY(ptbl_entry[0]), i);
         }
         test_stop(ctx);
 
@@ -221,6 +222,7 @@ int run_tests(struct main_context * main_context) {
         if(database->ptbl_record_count != i + 1) {
             ctx->reason = "Incorrect ptbl record count";
             ctx->status = TEST_FAILED;
+            DEBUG_PRINT("(%d != %d + 1)\n", database->ptbl_record_count, i);
         }
         test_stop(ctx);
 
@@ -331,6 +333,7 @@ int run_tests(struct main_context * main_context) {
     }
 
     memory_free(database);
+    memory_free(ctx);
 
     return 1;
 }

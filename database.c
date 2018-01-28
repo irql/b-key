@@ -284,6 +284,8 @@ database_pages_alloc(
         // Initialize the first database ptbl_record_tbl
         RECORD_ALLOC(Record_ptbl, rec_database->ptbl_record_tbl);
         database_ptbl_init(ctx_main, &rec_database->ptbl_record_tbl[0], page_count, bucket);
+        if(rec_ptbl) rec_ptbl[0] = rec_database->ptbl_record_tbl;
+        rec_database->ptbl_record_count = 1;
         return rec_database->ptbl_record_tbl[0].m_offset;
     }
 }
@@ -306,6 +308,7 @@ void database_pages_free(
         }
         memory_free(rec_database->ptbl_record_tbl);
         rec_database->ptbl_record_count = 0;
+        rec_database->ptbl_record_tbl = 0;
     }
 }
 
