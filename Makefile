@@ -1,7 +1,7 @@
 CC=gcc
 INC=./include
 OUT_DIR=./out
-OUT=test
+OUT=$(OUT_DIR)/test
 
 FLAGS=-Wimplicit-function-declaration -Woverflow
 
@@ -18,7 +18,7 @@ FILES=$(wildcard *.c)
 all: $(OUT_DIR) $(OUT)
 
 $(OUT): $(FILES)
-	$(CC) $(CC_OPTS) -o $(OUT_DIR)/$(OUT) $(FILES)
+	$(CC) $(CC_OPTS) -o $(OUT) $(FILES)
 
 $(OUT_DIR):
 	mkdir $(OUT_DIR)
