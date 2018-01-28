@@ -320,7 +320,7 @@ int run_tests(struct main_context * main_context) {
         }
     }
 
-    database_pages_free(main_context, database);
+    //database_pages_free(main_context, database);
 
     // TODO: Add test cases for K/V pair storing
     for(i = 0; i < 10; i++) {
@@ -331,6 +331,12 @@ int run_tests(struct main_context * main_context) {
         }
         test_stop(ctx);
     }
+
+    database_alloc_kv(main_context, database, 1, 12, "this is a test");
+
+    for(i = 0; i < 32; i++)
+    database->ptbl_record_tbl[0].page_usage[i] = 0xff;
+
 
     memory_free(database);
     memory_free(ctx);

@@ -267,7 +267,7 @@ database_pages_alloc(
                     );
             rec_database->ptbl_record_count = new_ptbl_record_count;
             if(!new_ptbl) {
-                DEBUG_PRINT("database_alloc_pages(..%d..): Failed to realloc database->ptbl_record_tbl\n", bucket);
+                DEBUG_PRINT("database_alloc_pages(bucket = %d): Failed to realloc database->ptbl_record_tbl\n", bucket);
                 return 0;
             }
             rec_database->ptbl_record_tbl = new_ptbl;
@@ -322,16 +322,46 @@ int database_calc_bucket(
     return ((i > 0) ? i : 0);
 }
 
-int database_alloc_kv(
+unsigned long
+database_alloc_kv(
     Context_main *ctx_main,
     Record_database *rec_database,
+    char data_type,
     unsigned long size,
-    unsigned long *buffer
+    unsigned char *buffer
 ) {
     // Allocate based on page-table mappings
     // If no page table exists for records of
     // a given size, create one.
+
     unsigned char bucket = database_calc_bucket(size);
-    // TODO: HOW DO WE KNOW WHAT PAGE WE HAVE WHEN database_pages_alloc() ONLY RETURNS AN OFFSET
-    return 0;
+    Record_ptbl *ptbl_entry = database_ptbl_search(ctx_main, rec_database, bucket);
+
+    if(!ptbl_entry) {
+        if(!database_pages_alloc(ctx_main, rec_database, &ptbl_entry, 1, bucket)) {
+            DEBUG_PRINT("database_alloc_kv(): Failed call to database_pages_alloc()");
+            return -1;
+        }
+    }
+
+    int i,j,free = -1;
+    for(i = 0; i < PTBL_CALC_PAGE_USAGE_BYTES(bucket); i++) {
+        unsigned char bits = ptbl_entry->page_usage[i];
+        fprintf(stderr, "%02x\n", bits);
+        for(j = 0; j < 8; j++) {
+            if( 0 == (bits & (1 << j)) ) {
+                free = (i * 8 * (1 << (4 + bucket))) + (j * (1 << (4 + bucket)));
+                break;
+            }
+        }
+        if(free != -1) break;
+    }
+
+    fprintf(stderr, "database_alloc_kv() %d + %p = %p\n", free, ptbl_entry->m_offset, free + ptbl_entry->m_offset);
+
+    unsigned long *value = ptbl_entry->m_offset + free;
+
+    memcpy(value, buffer, size);
+
+    return -1;
 }

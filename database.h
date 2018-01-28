@@ -21,12 +21,13 @@ database_pages_free(
     );
 
 
-int database_alloc_kv(
+unsigned long
+database_alloc_kv(
     Context_main *ctx_main,
     Record_database *rec_database,
-    int data_type,
+    char data_type,
     unsigned long size,
-    unsigned long *buffer
+    unsigned char *buffer
     );
 
 int database_ptbl_calc_page_usage_length(
