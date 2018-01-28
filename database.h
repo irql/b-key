@@ -31,3 +31,7 @@ int database_ptbl_calc_page_usage_length(
     int bucket,
     int page_count
     );
+
+int database_calc_bucket(
+    unsigned long length
+    );

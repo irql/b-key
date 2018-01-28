@@ -9,8 +9,8 @@
 #include "database.h"
 #include "debug.h"
 
-#undef DEBUG_PRINT
-#define DEBUG_PRINT(...)
+//#undef DEBUG_PRINT
+//#define DEBUG_PRINT(...)
 
 enum {
     TEST_FAILED,
@@ -313,6 +313,16 @@ int run_tests(struct main_context * main_context) {
     database_pages_free(main_context, database);
 
     // TODO: Add test cases for K/V pair storing
+    for(i = 0; i < 10; i++) {
+        test_start(ctx, "database_calc_bucket()");
+        if(database_calc_bucket(16 << i) != i) {
+            ctx->reason = "Wrong bucket";
+            ctx->status = TEST_FAILED;
+        }
+        test_stop(ctx);
+    }
+
+
     memory_free(database);
 
     return 1;

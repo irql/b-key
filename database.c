@@ -303,15 +303,26 @@ void database_pages_free(
     }
 }
 
+int database_calc_bucket(
+    unsigned long length
+) {
+    int i = -3;
+    length--;
+    while(length >>= 1)
+        i++;
+    return ((i > 0) ? i : 0);
+}
+
 int database_alloc_kv(
     Context_main *ctx_main,
     Record_database *rec_database,
-    int data_type,
     unsigned long size,
     unsigned long *buffer
 ) {
     // Allocate based on page-table mappings
     // If no page table exists for records of
     // a given size, create one.
+    unsigned char bucket = database_calc_bucket(size);
+    //unsigned char *offset = database_pages_alloc(ctx_main, rec_database, 1, x);
     return 0;
 }
