@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "debug.h"
 #include "records.h"
@@ -344,24 +345,27 @@ database_alloc_kv(
         }
     }
 
-    int i,j,free = -1;
-    for(i = 0; i < PTBL_CALC_PAGE_USAGE_BYTES(bucket); i++) {
-        unsigned char bits = ptbl_entry->page_usage[i];
-        fprintf(stderr, "%02x\n", bits);
-        for(j = 0; j < 8; j++) {
-            if( 0 == (bits & (1 << j)) ) {
-                free = (i * 8 * (1 << (4 + bucket))) + (j * (1 << (4 + bucket)));
-                break;
+    // Identify the first unused "slot" that can hold a value of the appropriate size
+    int i, free = -1;
+    for(i = 0; i < PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]) && free == -1; i++) {
+        int j;
+        for(j = 0; j < PTBL_CALC_PAGE_USAGE_BYTES(bucket) && free == -1; j++) {
+            int k;
+            unsigned char bits = ptbl_entry->page_usage[i * j];
+            for(k = 0; k < 8 && free == -1; k++) {
+                if( 0 == (bits & (1 << k)) ) {
+                    // Mark value slot as used since we will occupy the empty slot
+                    ptbl_entry->page_usage[i * j] |= (1 << k);
+                    free = (i * j * 8 * (1 << (4 + bucket))) + (k * (1 << (4 + bucket)));
+                }
             }
         }
-        if(free != -1) break;
     }
 
     fprintf(stderr, "database_alloc_kv() %d + %p = %p\n", free, ptbl_entry->m_offset, free + ptbl_entry->m_offset);
 
-    unsigned long *value = ptbl_entry->m_offset + free;
-
+    unsigned char *value = ptbl_entry->m_offset + free;
     memcpy(value, buffer, size);
 
-    return -1;
+    return 1;
 }

@@ -9,8 +9,8 @@
 #include "database.h"
 #include "debug.h"
 
-//#undef DEBUG_PRINT
-//#define DEBUG_PRINT(...)
+#undef DEBUG_PRINT
+#define DEBUG_PRINT(...)
 
 enum {
     TEST_FAILED,
@@ -332,11 +332,11 @@ int run_tests(struct main_context * main_context) {
         test_stop(ctx);
     }
 
+    database->ptbl_record_tbl[0].page_usage[0] = 1;
     database_alloc_kv(main_context, database, 1, 12, "this is a test");
 
     for(i = 0; i < 32; i++)
     database->ptbl_record_tbl[0].page_usage[i] = 0xff;
-
 
     memory_free(database);
     memory_free(ctx);
