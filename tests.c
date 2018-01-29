@@ -1,3 +1,7 @@
+#include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,6 +59,8 @@ void test_stop(Test_context *ctx) {
 
 int run_tests(struct main_context * main_context) {
     RECORD_CREATE(Test_context, ctx);
+
+    /* Test macros */
 
     test_start(ctx, "PTBL_RECORD_SET_PAGE_COUNT()");
     PTBL_RECORD_SET_PAGE_COUNT(ctx->ptbl_rec, 0xffffffff);
@@ -147,6 +153,8 @@ int run_tests(struct main_context * main_context) {
     }
     test_stop(ctx);
 
+    /* Test system parameters */
+    // TODO: Migrate to server initialization
     test_start(ctx, "Standard system page size");
     if(0x1000 != main_context->system_page_size) {
         ctx->reason = "System page size non-standard";
@@ -176,6 +184,8 @@ int run_tests(struct main_context * main_context) {
 
     RECORD_CREATE(Record_database, database);
 
+    /* Testing database.c functionality */
+
     RECORD_ALLOC(Record_ptbl, database->ptbl_record_tbl);
     database->ptbl_record_count = 1;
 
@@ -197,8 +207,8 @@ int run_tests(struct main_context * main_context) {
     }
     test_stop(ctx);
 
+    // The following tests to be run on buckets 0 through 8
     database_pages_free(main_context, database);
-
     for(i = 0; i <= 8; i++) {
         Record_ptbl *ptbl_entry;
         // Alloc a new bucket
@@ -259,15 +269,14 @@ int run_tests(struct main_context * main_context) {
         test_stop(ctx);
 
         // Test that we can allocate j free pages in a bucket correctly when page (j - 1) is in use
-        int j = 1;
-        for(; j <= 10; j++) {
-            int k = 0;
+        for(int j = 1; j <= 10; j++) {
             int bits = (i < 8) ? (256 >> i) : 1;
 
             unsigned int old_page_count = PTBL_RECORD_GET_PAGE_COUNT(database->ptbl_record_tbl[i]);
             unsigned int old_page_usage_length = database->ptbl_record_tbl[i].page_usage_length;
             unsigned char *old_page_base = new_page_base;
 
+            int k;
             if(i <= 5) {
                 for(k = 0; k < old_page_count; k++)
                     database->ptbl_record_tbl[i].page_usage[(32 >> i) * k] = 0;
@@ -322,22 +331,50 @@ int run_tests(struct main_context * main_context) {
 
     //database_pages_free(main_context, database);
 
-    // TODO: Add test cases for K/V pair storing
+    // Test that database_calc_bucket() calculates the correct bucket number
+    // for varying buffer (value) lengths
+
+#define ASSERT(x,y) \
+    test_start(ctx, y); \
+    if(! (x) ) { \
+        ctx->reason = "Failed"; \
+        ctx->status = TEST_FAILED; \
+    } \
+    test_stop(ctx);
+
+    // 4 pages = (16 << 10) bytes
+    unsigned char *buffer = memory_page_alloc(main_context, 4);
+    ASSERT(buffer != 0, "allocate 4 pages");
+
+    int fd = open("/dev/urandom", O_RDONLY);
+    ASSERT(fd != -1, "Opening /dev/urandom");
+
+    unsigned int buffer_length = 4 * main_context->system_page_size;
+    ASSERT(read(fd, buffer, buffer_length) == buffer_length, "Read random data into buffer");
+    close(fd);
+
     for(i = 0; i < 10; i++) {
+        unsigned long length = 16 << i;
+        unsigned int bucket = database_calc_bucket(length);
+
         test_start(ctx, "database_calc_bucket()");
-        if(database_calc_bucket(16 << i) != i) {
+        if(bucket != i) {
             ctx->reason = "Wrong bucket";
             ctx->status = TEST_FAILED;
         }
         test_stop(ctx);
-    }
 
-    database->ptbl_record_tbl[0].page_usage[0] = 1;
+        database_alloc_kv(main_context, database, bucket, length, buffer);
+    }
+    memory_page_free(main_context, buffer, 4);
+
+    database->ptbl_record_tbl[0].page_usage[0] = 3;
     database_alloc_kv(main_context, database, 1, 12, "this is a test");
 
     for(i = 0; i < 32; i++)
     database->ptbl_record_tbl[0].page_usage[i] = 0xff;
 
+    database_pages_free(main_context, database);
     memory_free(database);
     memory_free(ctx);
 

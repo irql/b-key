@@ -1,4 +1,4 @@
-//#define DEBUG_DATABASE
+#define DEBUG_DATABASE
 //#define DEBUG_MEMORY
 
 

@@ -331,11 +331,15 @@ database_alloc_kv(
     unsigned long size,
     unsigned char *buffer
 ) {
+    DEBUG_PRINT("database_alloc_kv(data_type = %d, size = %d, buffer = %p);\n", data_type, size, buffer);
+
     // Allocate based on page-table mappings
     // If no page table exists for records of
     // a given size, create one.
 
     unsigned char bucket = database_calc_bucket(size);
+    DEBUG_PRINT("\tbucket = %d\n", bucket);
+
     Record_ptbl *ptbl_entry = database_ptbl_search(ctx_main, rec_database, bucket);
 
     if(!ptbl_entry) {
