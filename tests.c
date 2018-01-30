@@ -118,11 +118,11 @@ int run_tests(struct main_context * main_context) {
     ASSERT(0x80 <= main_context->system_phys_page_count, "System physical memory >=512MB");
 
     int i = 0;
-    for(; (1 << i) < main_context->system_phys_page_count; i++) {
+    /*for(; (1 << i) < main_context->system_phys_page_count; i++) {
         test_page_alloc(main_context, (1 << i));
     }
 
-    /* Don't do this unless you're masochistic
+    * Don't do this unless you're masochistic
 
     DEBUG_PRINT("Attempting to allocate all but 65536 pyshical pages in the system\n");
     if(!test_memory_alloc(main_context, main_context->system_phys_page_count - 0x10000))
