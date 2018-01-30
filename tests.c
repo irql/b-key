@@ -145,15 +145,88 @@ int run_tests(struct main_context * main_context) {
 
     ASSERT(0 == database_ptbl_search(main_context, database, -1), "database_ptbl_search() doesn't find record");
 
-    // The following tests to be run on buckets 0 through 8
+    /* The following tests to be run on every conceivable bucket
+     *
+
+(for i in $(seq 0 63); do bytes=$(( 1 << ($i + 4) )); echo -ne "$i\t| "; [ $bytes -gt 1000000000000000000 ] && echo "$(( bytes /
+1000000000000000000))EB" || ([ $bytes -gt 1000000000000000 ] && echo "$((bytes / 1000000000000000))PB" || ([ $bytes -gt 1000000000000 ] && echo "$(($bytes / 1000000000000))TB" || ([ $bytes -gt 1000000000 ] && echo "$(($bytes / 1000000000))GB" || ([ $bytes -gt 1000000 ] && echo "$(($bytes / 1000000))MB" || ([ $bytes -gt 1000 ] && echo "$(($bytes / 1000))KB" || echo "${bytes}B"))))); done) | xclip -i
+
+     * Bucket | Max length of values
+     * -------+---------------------
+	 * 0      | 16B
+	 * 1      | 32B
+	 * 2      | 64B
+	 * 3      | 128B
+	 * 4      | 256B
+	 * 5      | 512B
+	 * 6      | 1KB
+	 * 7      | 2KB
+	 * 8      | 4KB
+	 * 9      | 8KB
+	 * 10     | 16KB
+	 * 11     | 32KB
+	 * 12     | 65KB
+	 * 13     | 131KB
+	 * 14     | 262KB
+	 * 15     | 524KB
+	 * 16     | 1MB
+	 * 17     | 2MB
+	 * 18     | 4MB
+	 * 19     | 8MB
+	 * 20     | 16MB
+	 * 21     | 33MB
+	 * 22     | 67MB
+	 * 23     | 134MB
+	 * 24     | 268MB
+	 * 25     | 536MB
+	 * 26     | 1GB
+	 * 27     | 2GB
+	 * 28     | 4GB
+	 * 29     | 8GB
+	 * 30     | 17GB
+	 * 31     | 34GB
+	 * 32     | 68GB
+	 * 33     | 137GB
+	 * 34     | 274GB
+	 * 35     | 549GB
+	 * 36     | 1TB
+	 * 37     | 2TB
+	 * 38     | 4TB
+	 * 39     | 8TB
+	 * 40     | 17TB
+	 * 41     | 35TB
+	 * 42     | 70TB
+	 * 43     | 140TB
+	 * 44     | 281TB
+	 * 45     | 562TB
+	 * 46     | 1PB
+	 * 47     | 2PB
+	 * 48     | 4PB
+	 * 49     | 9PB
+	 * 50     | 18PB
+	 * 51     | 36PB
+	 * 52     | 72PB
+	 * 53     | 144PB
+	 * 54     | 288PB
+	 * 55     | 576PB
+	 * 56     | 1EB
+	 * 57     | 2EB
+	 * 58     | 4EB
+	 * 59     | 9EB
+	 * 60     | 18EB
+	 * 61     | 36EB
+	 * 62     | 73EB
+	 * 63     | 147EB
+     */
     database_pages_free(main_context, database);
-    for(i = 0; i <= 8; i++) {
+    for(i = 0; i <= 63; i++) {
         Record_ptbl *ptbl_entry;
         // Alloc a new bucket
         unsigned char *page_base = database_pages_alloc(main_context, database, &ptbl_entry, 10, i);
         ASSERT(0 != page_base, "Allocate a new bucket");
 
-        ASSERT(0 != ptbl_entry && PTBL_RECORD_GET_KEY(ptbl_entry[0]) == i, "Correct ptbl_entry");
+        ASSERT(ptbl_entry, "ptbl_entry not null");
+        ASSERT(PTBL_RECORD_GET_KEY(ptbl_entry[0]) == i, "Correct ptbl_entry");
 
         ASSERT(database->ptbl_record_count == i + 1, "Correct ptbl_record_count");
 
