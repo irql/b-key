@@ -366,7 +366,7 @@ database_alloc_kv(
         }
     }
 
-    fprintf(stderr, "database_alloc_kv() %d + %p = %p\n", free, ptbl_entry->m_offset, free + ptbl_entry->m_offset);
+    DEBUG_PRINT("database_alloc_kv() %d + %p = %p\n", free, ptbl_entry->m_offset, free + ptbl_entry->m_offset);
 
     unsigned char *value = ptbl_entry->m_offset + free;
     memcpy(value, buffer, size);

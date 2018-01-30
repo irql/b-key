@@ -353,26 +353,22 @@ int run_tests(struct main_context * main_context) {
     ASSERT(read(fd, buffer, buffer_length) == buffer_length, "Read random data into buffer");
     close(fd);
 
-    for(i = 0; i < 10; i++) {
+    for(i = 0; i < 9; i++) {
         unsigned long length = 16 << i;
         unsigned int bucket = database_calc_bucket(length);
 
-        test_start(ctx, "database_calc_bucket()");
-        if(bucket != i) {
-            ctx->reason = "Wrong bucket";
-            ctx->status = TEST_FAILED;
-        }
-        test_stop(ctx);
-
-        database_alloc_kv(main_context, database, bucket, length, buffer);
+        ASSERT(bucket == i, "database_calc_bucket()");
+        ASSERT(database_alloc_kv(main_context, database, 1, length, buffer), "database_alloc_kv()");
     }
     memory_page_free(main_context, buffer, 4);
 
+    /*
     database->ptbl_record_tbl[0].page_usage[0] = 3;
     database_alloc_kv(main_context, database, 1, 12, "this is a test");
 
     for(i = 0; i < 32; i++)
     database->ptbl_record_tbl[0].page_usage[i] = 0xff;
+    */
 
     database_pages_free(main_context, database);
     memory_free(database);
