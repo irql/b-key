@@ -118,11 +118,11 @@ int run_tests(struct main_context * main_context) {
     ASSERT(0x80 <= main_context->system_phys_page_count, "System physical memory >=512MB");
 
     int i = 0;
-    /*for(; (1 << i) < main_context->system_phys_page_count; i++) {
+    for(; (1 << i) < main_context->system_phys_page_count; i++) {
         test_page_alloc(main_context, (1 << i));
     }
 
-    * Don't do this unless you're masochistic
+    /* Don't do this unless you're masochistic
 
     DEBUG_PRINT("Attempting to allocate all but 65536 pyshical pages in the system\n");
     if(!test_memory_alloc(main_context, main_context->system_phys_page_count - 0x10000))
@@ -145,12 +145,24 @@ int run_tests(struct main_context * main_context) {
 
     ASSERT(0 == database_ptbl_search(main_context, database, -1), "database_ptbl_search() doesn't find record");
 
-    /* The following tests to be run on every conceivable bucket
+    /* The following tests to be run on every bucket
      *
-
-(for i in $(seq 0 63); do bytes=$(( 1 << ($i + 4) )); echo -ne "$i\t| "; [ $bytes -gt 1000000000000000000 ] && echo "$(( bytes /
-1000000000000000000))EB" || ([ $bytes -gt 1000000000000000 ] && echo "$((bytes / 1000000000000000))PB" || ([ $bytes -gt 1000000000000 ] && echo "$(($bytes / 1000000000000))TB" || ([ $bytes -gt 1000000000 ] && echo "$(($bytes / 1000000000))GB" || ([ $bytes -gt 1000000 ] && echo "$(($bytes / 1000000))MB" || ([ $bytes -gt 1000 ] && echo "$(($bytes / 1000))KB" || echo "${bytes}B"))))); done) | xclip -i
-
+     * NOTE: DO NOT run on buckets > 25, depending on memory requirements.
+     *
+     * The tests will try to mmap() 20 pages for each bucket.
+     * The page size is 4096 for buckets <=8.
+     * The page size is 4096 * 2^(x - 8) for buckets (x) >8.
+     *
+     * e.g. bucket 25 will end up trying to allocate ((4096 * 2^(25 - 8)) * 20)
+     * bytes in total (10.7 GB !). If your system only has 8GB of memory, the
+     * max bucket you can test will probably be 24 (only 5.3 GB allocated).
+     *
+     * In addition, each bit in page_usage records whether or not a particular
+     * value within a page has been used. In the case of buckets whose maximum
+     * value length is >=4096 (buckets >=8), each bit represents one page,
+     * regardless of how many multiples of the system page size that one page is.
+     *
+     *
      * Bucket | Max length of values
      * -------+---------------------
 	 * 0      | 16B
@@ -219,7 +231,7 @@ int run_tests(struct main_context * main_context) {
 	 * 63     | 147EB
      */
     database_pages_free(main_context, database);
-    for(i = 0; i <= 63; i++) {
+    for(i = 0; i <= 24; i++) {
         Record_ptbl *ptbl_entry;
         // Alloc a new bucket
         unsigned char *page_base = database_pages_alloc(main_context, database, &ptbl_entry, 10, i);
@@ -272,7 +284,7 @@ int run_tests(struct main_context * main_context) {
 
             // Because we expect new_page_base to change entirely when it needs to remap the
             // pages because of MREMAP_MAYMOVE, we ignore this check (using -1) if j > 5
-            unsigned char *expected_new_page_base = (j > 5) ? (unsigned char *)-1 : old_page_base + main_context->system_page_size;
+            unsigned char *expected_new_page_base = (j > 5) ? (unsigned char *)-1 : old_page_base + main_context->system_page_size * ((i <= 8) ? 1 : (1 << (i - 8)));
             new_page_base = database_pages_alloc(main_context, database, 0, j, i);
 
             ASSERT(new_page_base, "Correct new_page_base");

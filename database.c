@@ -213,8 +213,18 @@ database_pages_alloc(
                 }
 
                 if(free_pages >= page_count) {
-                    //offset = ptbl->m_offset + (i - (page_count - 1)) * ctx_main->system_page_size;
-                    offset = ptbl->m_offset + (((bits < 8 ? ((i * (8 / bits)) + j - 1 - (free_pages - page_count)) : i) - (page_count - 1)) << 12);
+                    offset = ptbl->m_offset
+                        + (
+                            (
+                             (bits < 8 ?
+                              ((i * (8 / bits)) + j - 1 - (free_pages - page_count)) :
+                              i
+                             )
+                             - (page_count - 1)
+                            )
+                            * ctx_main->system_page_size
+                            * ((bucket <= 8) ? 1 : (1 << (bucket - 8)))
+                        );
                     last_free_page = -1;
                     DEBUG_PRINT("Offset decided = %p (%ldB, page bucket starts %p)\n", offset, offset - ptbl->m_offset, ptbl->m_offset);
                     break;
@@ -229,7 +239,7 @@ database_pages_alloc(
                         ctx_main,
                         ptbl->m_offset,
                         PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]),
-                        new_page_count
+                        new_page_count * ((bucket <= 8) ? 1 : (1 << (bucket - 8)))
                         );
                 if(!offset) {
                     return 0;
@@ -249,7 +259,7 @@ database_pages_alloc(
 
                 // This needs to be done AFTER setting ptbl->m_offset to the right page base
                 if(last_free_page != -1) {
-                    offset += (new_page_count - page_count) * ctx_main->system_page_size;
+                    offset += (new_page_count - page_count) * ctx_main->system_page_size * ((bucket <= 8) ? 1 : (1 << (bucket - 8)));
                 }
             }
 
