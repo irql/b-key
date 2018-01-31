@@ -344,6 +344,43 @@ int database_calc_bucket(
     return ((i > 0) ? i : 0);
 }
 
+int
+database_kv_free(
+    Context_main *ctx_main,
+    Record_database *rec_database,
+    unsigned long k
+) {
+    if(k > rec_database->kv_record_count) {
+        DEBUG_PRINT("database_kv_free(k = %d) Tried to free invalid key\n", k);
+        return 0;
+    }
+
+    Record_kv *kv_rec = &rec_database->kv_record_tbl[k];
+    if(!KV_RECORD_GET_SIZE(kv_rec[0])) {
+        DEBUG_PRINT("database_kv_free(k = %d) kv_rec already free'd\n", k);
+        return 1;
+    }
+
+    Record_ptbl *ptbl_entry = database_ptbl_search(ctx_main, rec_database, KV_RECORD_GET_BUCKET(kv_rec[0]));
+    if(!ptbl_entry) {
+        DEBUG_PRINT("database_kv_free(k = %d) No ptbl entry found for bucket - corrupt kv record\n", k);
+        return 0;
+    }
+
+    unsigned char bucket = KV_RECORD_GET_BUCKET(kv_rec[0]);
+    unsigned long bucket_wsz = PTBL_CALC_BUCKET_WORD_SIZE(bucket);
+    unsigned long kv_index = KV_RECORD_GET_INDEX(kv_rec[0]);
+
+    // Zero-out value
+    unsigned char *region = (unsigned char *)(ptbl_entry->m_offset + kv_index * bucket_wsz);
+    memset(region, 0, bucket_wsz);
+
+    // Mark value as freed in page_usage
+
+    KV_RECORD_SET_SIZE(kv_rec[0], 0);
+
+    return 1;
+}
 unsigned long
 database_alloc_kv(
     Context_main *ctx_main,
@@ -391,7 +428,7 @@ database_alloc_kv(
                 if( !(bits & (1 << k)) ) {
                     // Mark value slot as used since we will occupy the empty slot
                     ptbl_entry->page_usage[index] |= (1 << k);
-                    free_index = (index * 8) + k; // value-level granularity //(index * 8 * (1 << (4 + bucket))) + (k * (1 << (4 + bucket)));
+                    free_index = (index * 8) + k; // value-level granularity
                 }
             }
         }
@@ -407,7 +444,7 @@ database_alloc_kv(
         free_index = 0;
     }
 
-    unsigned long value_offset = free_index * (1 << (4 + bucket));
+    unsigned long value_offset = free_index * PTBL_CALC_BUCKET_WORD_SIZE(bucket);
 
     DEBUG_PRINT("database_alloc_kv() %d + %p = %p\n", free_index, ptbl_entry->m_offset, ptbl_entry->m_offset + value_offset);
 

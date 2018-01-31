@@ -17,6 +17,7 @@ typedef struct ptbl_record {
 // 16 bytes (2w) per page for bucket #1 (32 byte vlaues)
 #define PTBL_CALC_PAGE_USAGE_BYTES(x) ((x < 5) ? (32 >> x) : 1)
 #define PTBL_CALC_PAGE_USAGE_BITS(x) ((x < 8) ? (256 >> x) : 1)
+#define PTBL_CALC_BUCKET_WORD_SIZE(x) (1 << (4 + x))
 
 #define PTBL_KEY_BITMASK (0xE0 << 24)
 #define PTBL_KEY_HIGH_BITMASK 0x38
