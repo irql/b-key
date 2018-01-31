@@ -92,10 +92,9 @@ typedef struct kv_record {
 // Master Record
 typedef struct database_record {
     // blocks of 4096 allocated
-    unsigned long page_count;
-    unsigned long kv_record_count;
-    unsigned long kv_page_count;
-    unsigned long ptbl_record_count;
+    unsigned long int page_count;
+    unsigned long int kv_record_count;
+    unsigned long int ptbl_record_count;
     struct ptbl_record *ptbl_record_tbl;
     struct kv_record *kv_record_tbl;
 } Record_database;

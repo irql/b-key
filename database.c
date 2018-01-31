@@ -451,18 +451,16 @@ database_alloc_kv(
     // We need to find a free spot in the kv_record table and occupy it
     unsigned long free_kv = 0;
     if(!rec_database->kv_record_tbl) {
-        rec_database->kv_record_tbl = (Record_kv *)memory_page_alloc(ctx_main, 1);
+        rec_database->kv_record_tbl = (Record_kv *)memory_alloc(sizeof(Record_kv));
         if(!rec_database->kv_record_tbl) {
             DEBUG_PRINT("database_alloc_kv() Failed to allocate kv_record_tbl\n");
             return -1;
         }
-        rec_database->kv_page_count = 1;
+        rec_database->kv_record_count = 1;
     }
     else {
-        unsigned int max_kv = rec_database->kv_page_count * (ctx_main->system_page_size / sizeof(Record_kv));
-
         free_kv = -1;
-        for(unsigned int i = 0; i < max_kv; i++) {
+        for(int i = 0; i < rec_database->kv_record_count; i++) {
             if(!KV_RECORD_GET_SIZE(rec_database->kv_record_tbl[i])) {
                 free_kv = i;
             }
@@ -472,21 +470,20 @@ database_alloc_kv(
         // try to reallocate the record table
         if(free_kv == -1) {
             Record_kv *new_kv_tbl = (Record_kv *)
-                memory_page_realloc(
-                        ctx_main,
-                        rec_database->kv_record_tbl,
-                        rec_database->kv_page_count,
-                        rec_database->kv_page_count + 1
-                        );
+                memory_realloc(
+                    rec_database->kv_record_tbl,
+                    rec_database->kv_record_count * sizeof(Record_kv),
+                    (rec_database->kv_record_count + 1) * sizeof(Record_kv)
+                    );
             if(!new_kv_tbl) {
                 DEBUG_PRINT("database_alloc_kv(): Failed to increase the size of kv_record_tbl\n");
                 return -1;
             }
 
-            free_kv = max_kv;
+            free_kv = rec_database->kv_record_count;
 
             rec_database->kv_record_tbl = new_kv_tbl;
-            rec_database->kv_page_count++;
+            rec_database->kv_record_count++;
         }
     }
 
