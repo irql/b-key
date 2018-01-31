@@ -7,7 +7,7 @@ memory_page_alloc(
 unsigned char *
 memory_page_realloc(
     struct main_context *main_context,
-    unsigned char *offset,
+    void *offset,
     int old_page_count,
     int page_count
     );
