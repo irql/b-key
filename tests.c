@@ -30,6 +30,7 @@ typedef struct test_context {
     int status;
     char *reason;
     struct ptbl_record ptbl_rec;
+    struct kv_record kv_rec;
 } Test_context;
 
 int test_page_alloc(struct main_context * main_context, int pages) {
@@ -75,6 +76,7 @@ int run_tests(struct main_context * main_context) {
 
     /* Test macros */
 
+    // PTBL_*
     PTBL_RECORD_SET_PAGE_COUNT(ctx->ptbl_rec, 0xffffffff);
     ASSERT(0x1fffffff == ctx->ptbl_rec.key_high_and_page_count, "PTBL_RECORD_SET_PAGE_COUNT()");
 
@@ -99,20 +101,33 @@ int run_tests(struct main_context * main_context) {
             0xE0000000 == ctx->ptbl_rec.key_low_and_offset,
             "PTBL_RECORD_SET_KEY()");
 
-    struct kv_record kv_record;
-    memset(&kv_record, 0, sizeof(kv_record));
+    // KV_*
+    // flags_and_size
+    KV_RECORD_SET_FLAGS(ctx->kv_rec, 0xffff);
+    ASSERT(0xFF00000000000000 == ctx->kv_rec.flags_and_size, "KV_RECORD_SET_FLAGS()");
 
-    KV_RECORD_SET_FLAGS(kv_record, 0xffff);
-    ASSERT(0xFF00000000000000 == kv_record.flags_and_size, "KV_RECORD_SET_FLAGS()");
+    ASSERT(0xFF == KV_RECORD_GET_FLAGS(ctx->kv_rec), "KV_RECORD_GET_FLAGS()");
 
-    ASSERT(0xFF == KV_RECORD_GET_FLAGS(kv_record), "KV_RECORD_GET_FLAGS()");
+    ctx->kv_rec.flags_and_size = 0;
+    KV_RECORD_SET_SIZE(ctx->kv_rec, 0xffffffffffffffff);
+    ASSERT(0x00FFFFFFFFFFFFFF == ctx->kv_rec.flags_and_size, "KV_RECORD_SET_SIZE()");
 
-    kv_record.flags_and_size = 0;
-    KV_RECORD_SET_SIZE(kv_record, 0xffffffffffffffff);
-    ASSERT(0x00FFFFFFFFFFFFFF == kv_record.flags_and_size, "KV_RECORD_SET_SIZE()");
+    ctx->kv_rec.flags_and_size <<= 8;
+    ASSERT(0x00FFFFFFFFFFFF00 == KV_RECORD_GET_SIZE(ctx->kv_rec), "KV_RECORD_GET_SIZE()");
 
-    kv_record.flags_and_size <<= 8;
-    ASSERT(0x00FFFFFFFFFFFF00 == KV_RECORD_GET_SIZE(kv_record), "KV_RECORD_GET_SIZE()");
+    // bucket_and_index
+    KV_RECORD_SET_BUCKET(ctx->kv_rec, 0xff);
+    DEBUG_PRINT("%lx\n", ctx->kv_rec.bucket_and_index);
+    ASSERT(0xFC00000000000000 == ctx->kv_rec.bucket_and_index, "KV_RECORD_SET_BUCKET()");
+
+    ASSERT(0x3F == KV_RECORD_GET_BUCKET(ctx->kv_rec), "KV_RECORD_GET_BUCKET()");
+
+    ctx->kv_rec.bucket_and_index = 0;
+    KV_RECORD_SET_INDEX(ctx->kv_rec, 0xffffffffffffffff);
+    ASSERT(0x03FFFFFFFFFFFFFF == ctx->kv_rec.bucket_and_index, "KV_RECORD_SET_INDEX()");
+
+    ctx->kv_rec.bucket_and_index <<= 8;
+    ASSERT(0x03FFFFFFFFFFFF00 == KV_RECORD_GET_INDEX(ctx->kv_rec), "KV_RECORD_GET_INDEX()");
 
     /* Test system parameters */
     // TODO: Migrate to server initialization
@@ -300,10 +315,7 @@ int run_tests(struct main_context * main_context) {
         }
     }
 
-    //database_pages_free(main_context, database);
-
-    // Test that database_calc_bucket() calculates the correct bucket number
-    // for varying buffer (value) lengths
+    database_pages_free(main_context, database);
 
     unsigned int buffer_length = 16 << TEST_MAX_BUCKET;
     unsigned int pages_count = ((buffer_length > main_context->system_page_size) ? buffer_length / main_context->system_page_size : 1);
@@ -321,6 +333,8 @@ int run_tests(struct main_context * main_context) {
         unsigned long length = 16 << i;
         unsigned int bucket = database_calc_bucket(length);
 
+        // Test that database_calc_bucket() calculates the correct bucket number
+        // for varying buffer (value) lengths
         ASSERT(bucket == i, "database_calc_bucket()");
         // Test as many allocs as we can, but don't go over 512MB of used data
         DEBUG_PRINT("Bucket %d: Allocating 10 values\n", bucket);

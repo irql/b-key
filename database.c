@@ -365,22 +365,29 @@ database_alloc_kv(
 
     if(!ptbl_entry) {
         if(!database_pages_alloc(ctx_main, rec_database, &ptbl_entry, 1, bucket)) {
-            DEBUG_PRINT("database_alloc_kv(): Failed call to database_pages_alloc()");
+            DEBUG_PRINT("database_alloc_kv(): Failed call to database_pages_alloc()\n");
             return -1;
         }
     }
 
+    if(!ptbl_entry->page_usage || ptbl_entry->page_usage_length != database_ptbl_calc_page_usage_length(bucket, PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]))) {
+        DEBUG_PRINT("database_alloc_kv(): page_usage_length does not match page count\n");
+        return -1;
+    }
+
     // Identify the first unused "slot" that can hold a value of the appropriate size
-    int i, free = -1;
-    for(i = 0; i < PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]) && free == -1; i++) {
-        int j;
+    int free = -1;
+    for(int i = 0; i < PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]) && free == -1; i++) {
+
         DEBUG_PRINT("%d:\t", i);
-        for(j = 0; j < PTBL_CALC_PAGE_USAGE_BYTES(bucket) && free == -1; j++) {
-            int k;
+
+        for(int j = 0; j < PTBL_CALC_PAGE_USAGE_BYTES(bucket) && free == -1; j++) {
             int index = (i * PTBL_CALC_PAGE_USAGE_BYTES(bucket)) + j;
             unsigned char bits = ptbl_entry->page_usage[index];
+
             DEBUG_PRINT("%02x ", bits);
-            for(k = 0; k < 8 && free == -1; k++) {
+
+            for(int k = 0; k < 8 && free == -1; k++) {
                 if( !(bits & (1 << k)) ) {
                     // Mark value slot as used since we will occupy the empty slot
                     ptbl_entry->page_usage[index] |= (1 << k);
@@ -388,6 +395,7 @@ database_alloc_kv(
                 }
             }
         }
+
         DEBUG_PRINT("\n");
     }
 
@@ -400,7 +408,15 @@ database_alloc_kv(
     }
 
     DEBUG_PRINT("database_alloc_kv() %d + %p = %p\n", free, ptbl_entry->m_offset, free + ptbl_entry->m_offset);
-    //DEBUG_PRINT("TRACKER: %p,+%d = %d * 4096 * %d > %d\n", ptbl_entry->m_offset, free, PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]), ((bucket <= 8) ? 1 : (1 << (bucket - 8))), size);
+
+    // We need to find a free spot in the kv_record table and occupy it
+    unsigned long free_kv = 0;
+    if(!rec_database->kv_record_tbl) {
+        rec_database->kv_record_tbl = (Record_kv *)memory_alloc(sizeof(Record_kv));
+        rec_database->kv_record_count = 0;
+    }
+    else {
+    }
 
     unsigned char *value = ptbl_entry->m_offset + free;
     memcpy(value, buffer, size);

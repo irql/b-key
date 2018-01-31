@@ -48,15 +48,32 @@ typedef struct ptbl_record {
     x.key_low_and_offset |= ((y & PTBL_KEY_LOW_BITMASK) << PTBL_KEY_LOW_SHIFT);
 
 // K/V Record
-struct kv_record {
+typedef struct kv_record {
     /*
      * 0 -  7 ( 8b): flags
      * 8 - 63 (56b): size
      */
-    unsigned long int flags_and_size;
+    unsigned long flags_and_size;
 
-    unsigned long int offset;
-};
+    /*
+     * 0 -  5 ( 6b): bucket
+     * 6 - 63 (58b): index (page base + index * max bucket value length)
+     */
+    unsigned long bucket_and_index;
+} Record_kv;
+
+#define KV_RECORD_BUCKET_SHIFT 58
+#define KV_RECORD_BUCKET_BITMASK ((unsigned long)0x3F << KV_RECORD_BUCKET_SHIFT)
+
+#define KV_RECORD_GET_BUCKET(x) ((x.bucket_and_index & KV_RECORD_BUCKET_BITMASK) >> KV_RECORD_BUCKET_SHIFT)
+#define KV_RECORD_SET_BUCKET(x,y) \
+    x.bucket_and_index &= ~KV_RECORD_BUCKET_BITMASK; \
+    x.bucket_and_index |= ((unsigned long)(y & (KV_RECORD_BUCKET_BITMASK >> KV_RECORD_BUCKET_SHIFT)) << KV_RECORD_BUCKET_SHIFT);
+
+#define KV_RECORD_GET_INDEX(x) (x.bucket_and_index & ~KV_RECORD_BUCKET_BITMASK)
+#define KV_RECORD_SET_INDEX(x,y) \
+    x.bucket_and_index &= KV_RECORD_BUCKET_BITMASK; \
+    x.bucket_and_index |= (y & ~KV_RECORD_BUCKET_BITMASK);
 
 #define KV_RECORD_FLAGS_SHIFT 56
 #define KV_RECORD_FLAGS_BITMASK ((unsigned long)0xFF << KV_RECORD_FLAGS_SHIFT)
