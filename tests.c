@@ -18,6 +18,8 @@
 #define DEBUG_PRINT(...)
 #endif
 
+#define TEST_MAX_BUCKET 24
+
 enum {
     TEST_FAILED,
     TEST_SUCCESS
@@ -231,7 +233,7 @@ int run_tests(struct main_context * main_context) {
 	 * 63     | 147EB
      */
     database_pages_free(main_context, database);
-    for(i = 0; i <= 24; i++) {
+    for(i = 0; i <= TEST_MAX_BUCKET; i++) {
         Record_ptbl *ptbl_entry;
         // Alloc a new bucket
         unsigned char *page_base = database_pages_alloc(main_context, database, &ptbl_entry, 10, i);
@@ -303,24 +305,26 @@ int run_tests(struct main_context * main_context) {
     // Test that database_calc_bucket() calculates the correct bucket number
     // for varying buffer (value) lengths
 
-    // 4 pages = (16 << 10) bytes
-    unsigned char *buffer = memory_page_alloc(main_context, 4);
+    unsigned int buffer_length = 16 << TEST_MAX_BUCKET;
+    unsigned char *buffer = memory_page_alloc(main_context, buffer_length / main_context->system_page_size);
     ASSERT(buffer != 0, "allocate 4 pages");
 
-    int fd = open("/dev/urandom", O_RDONLY);
-    ASSERT(fd != -1, "Opening /dev/urandom");
+    int fd = open("/dev/zero", O_RDONLY);
+    ASSERT(fd != -1, "Opening /dev/zero");
 
-    unsigned int buffer_length = 4 * main_context->system_page_size;
-    ASSERT(read(fd, buffer, buffer_length) == buffer_length, "Read random data into buffer");
+    ssize_t count = 0;
+    DEBUG_PRINT("%d == %d", count, buffer_length);
+    ASSERT((count = read(fd, buffer, buffer_length)) == buffer_length, "Read random data into buffer");
     close(fd);
 
-    for(i = 0; i < 12; i++) {
+    for(i = 0; i < TEST_MAX_BUCKET; i++) {
         unsigned long length = 16 << i;
         unsigned int bucket = database_calc_bucket(length);
 
         ASSERT(bucket == i, "database_calc_bucket()");
-        ASSERT(database_alloc_kv(main_context, database, 1, buffer_length, buffer), "database_alloc_kv()");
+        ASSERT(database_alloc_kv(main_context, database, 1, length, buffer), "database_alloc_kv()");
     }
+
     memory_page_free(main_context, buffer, 4);
 
     /*
