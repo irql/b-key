@@ -18,7 +18,7 @@
 #define DEBUG_PRINT(...)
 #endif
 
-#define TEST_MAX_BUCKET 24
+#define TEST_MAX_BUCKET 1
 
 enum {
     TEST_FAILED,
@@ -306,14 +306,14 @@ int run_tests(struct main_context * main_context) {
     // for varying buffer (value) lengths
 
     unsigned int buffer_length = 16 << TEST_MAX_BUCKET;
-    unsigned char *buffer = memory_page_alloc(main_context, buffer_length / main_context->system_page_size);
-    ASSERT(buffer != 0, "allocate 4 pages");
+    unsigned int pages_count = ((buffer_length > main_context->system_page_size) ? buffer_length / main_context->system_page_size : 1);
+    unsigned char *buffer = memory_page_alloc(main_context, pages_count);
+    ASSERT(buffer != 0, "allocate pages");
 
     int fd = open("/dev/zero", O_RDONLY);
     ASSERT(fd != -1, "Opening /dev/zero");
 
     ssize_t count = 0;
-    DEBUG_PRINT("%d == %d", count, buffer_length);
     ASSERT((count = read(fd, buffer, buffer_length)) == buffer_length, "Read random data into buffer");
     close(fd);
 
@@ -322,10 +322,14 @@ int run_tests(struct main_context * main_context) {
         unsigned int bucket = database_calc_bucket(length);
 
         ASSERT(bucket == i, "database_calc_bucket()");
-        ASSERT(database_alloc_kv(main_context, database, 1, length, buffer), "database_alloc_kv()");
+        // Test as many allocs as we can, but don't go over 512MB of used data
+        DEBUG_PRINT("Bucket %d: Allocating 10 values\n", bucket);
+        for(int j = 0; j < (0x80 * main_context->system_page_size) / length; j++) {
+            ASSERT(database_alloc_kv(main_context, database, 1, length, buffer), "database_alloc_kv()");
+        }
     }
 
-    memory_page_free(main_context, buffer, 4);
+    memory_page_free(main_context, buffer, pages_count);
 
     /*
     database->ptbl_record_tbl[0].page_usage[0] = 3;

@@ -1,5 +1,5 @@
-#define DEBUG_DATABASE
-#define DEBUG_MEMORY
+//#define DEBUG_DATABASE
+//#define DEBUG_MEMORY
 #define DEBUG_TESTS
 
 
