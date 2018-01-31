@@ -319,7 +319,7 @@ int run_tests(struct main_context * main_context) {
         unsigned int bucket = database_calc_bucket(length);
 
         ASSERT(bucket == i, "database_calc_bucket()");
-        ASSERT(database_alloc_kv(main_context, database, 1, length, buffer), "database_alloc_kv()");
+        ASSERT(database_alloc_kv(main_context, database, 1, buffer_length, buffer), "database_alloc_kv()");
     }
     memory_page_free(main_context, buffer, 4);
 

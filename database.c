@@ -388,6 +388,7 @@ database_alloc_kv(
     }
 
     DEBUG_PRINT("database_alloc_kv() %d + %p = %p\n", free, ptbl_entry->m_offset, free + ptbl_entry->m_offset);
+    //DEBUG_PRINT("TRACKER: %p,+%d = %d * 4096 * %d > %d\n", ptbl_entry->m_offset, free, PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]), ((bucket <= 8) ? 1 : (1 << (bucket - 8))), size);
 
     unsigned char *value = ptbl_entry->m_offset + free;
     memcpy(value, buffer, size);
