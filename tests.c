@@ -314,7 +314,7 @@ int run_tests(struct main_context * main_context) {
     ASSERT(read(fd, buffer, buffer_length) == buffer_length, "Read random data into buffer");
     close(fd);
 
-    for(i = 0; i < 9; i++) {
+    for(i = 0; i < 12; i++) {
         unsigned long length = 16 << i;
         unsigned int bucket = database_calc_bucket(length);
 

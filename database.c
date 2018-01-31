@@ -235,22 +235,32 @@ database_pages_alloc(
                 // Realloc (add) more pages
                 // TODO: Decide if we want to support buckets > 8 (i.e. bucket x after 8 holds 4096 * (1 << (x - 8)) )
                 int new_page_count = PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) + page_count - free_pages;
+
                 offset = memory_page_realloc(
                         ctx_main,
                         ptbl->m_offset,
                         PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]),
                         new_page_count * ((bucket <= 8) ? 1 : (1 << (bucket - 8)))
                         );
+
                 if(!offset) {
                     return 0;
                 }
 
                 unsigned int new_page_usage_length = database_ptbl_calc_page_usage_length(bucket, new_page_count);
-                ptbl->page_usage = memory_realloc(ptbl->page_usage, sizeof(unsigned char) * ptbl->page_usage_length, sizeof(unsigned char) * new_page_usage_length);
-                ptbl->page_usage_length = new_page_usage_length;
-                DEBUG_PRINT("\tIncreased size of page_usage: %d\n", ptbl->page_usage_length);
-                if(!ptbl->page_usage) {
-                    return 0;
+
+                // Current method doesn't garbage collect the page-tables (yet),
+                // however we should avoid calling the realloc() function on
+                // page_usage if the new length is exactly the same as the old
+                // length (i.e. on any bucket >8 where multiple pages are
+                // represented in a single byte)
+                if(new_page_usage_length > ptbl->page_usage_length) {
+                    ptbl->page_usage = memory_realloc(ptbl->page_usage, sizeof(unsigned char) * ptbl->page_usage_length, sizeof(unsigned char) * new_page_usage_length);
+                    if(!ptbl->page_usage) {
+                        return 0;
+                    }
+                    ptbl->page_usage_length = new_page_usage_length;                
+                    DEBUG_PRINT("\tIncreased size of page_usage: %d\n", ptbl->page_usage_length);
                 }
 
                 // If the OS assigns us a new virtual address, we need to record that
@@ -258,6 +268,7 @@ database_pages_alloc(
                 PTBL_RECORD_SET_PAGE_COUNT(ptbl[0], new_page_count);
 
                 // This needs to be done AFTER setting ptbl->m_offset to the right page base
+                // (for obvious reasons)
                 if(last_free_page != -1) {
                     offset += (new_page_count - page_count) * ctx_main->system_page_size * ((bucket <= 8) ? 1 : (1 << (bucket - 8)));
                 }
