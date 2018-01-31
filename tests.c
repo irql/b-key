@@ -73,8 +73,7 @@ int run_tests(struct main_context * main_context) {
     } \
     test_stop(ctx);
 
-
-    /* Test macros */
+    /* Test our macros */
 
     // PTBL_*
     PTBL_RECORD_SET_PAGE_COUNT(ctx->ptbl_rec, 0xffffffff);
@@ -130,6 +129,7 @@ int run_tests(struct main_context * main_context) {
     ASSERT(0x03FFFFFFFFFFFF00 == KV_RECORD_GET_INDEX(ctx->kv_rec), "KV_RECORD_GET_INDEX()");
 
     /* Test system parameters */
+
     // TODO: Migrate to server initialization
     ASSERT(0x1000 == main_context->system_page_size, "Standard system page size");
     ASSERT(0x80 <= main_context->system_phys_page_count, "System physical memory >=512MB");
@@ -147,9 +147,9 @@ int run_tests(struct main_context * main_context) {
 
     */
 
-    RECORD_CREATE(Record_database, database);
-
     /* Testing database.c functionality */
+
+    RECORD_CREATE(Record_database, database);
 
     RECORD_ALLOC(Record_ptbl, database->ptbl_record_tbl);
     database->ptbl_record_count = 1;
@@ -339,7 +339,7 @@ int run_tests(struct main_context * main_context) {
         // Test as many allocs as we can, but don't go over 512MB of used data
         DEBUG_PRINT("Bucket %d: Allocating 10 values\n", bucket);
         for(int j = 0; j < (0x80 * main_context->system_page_size) / length; j++) {
-            ASSERT(database_alloc_kv(main_context, database, 1, length, buffer), "database_alloc_kv()");
+            ASSERT(-1 != database_alloc_kv(main_context, database, 1, length, buffer), "database_alloc_kv()");
         }
     }
 

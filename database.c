@@ -415,14 +415,43 @@ database_alloc_kv(
     unsigned long free_kv = 0;
     if(!rec_database->kv_record_tbl) {
         rec_database->kv_record_tbl = (Record_kv *)memory_alloc(sizeof(Record_kv));
-        rec_database->kv_record_count = 0;
+        if(!rec_database->kv_record_tbl) {
+            DEBUG_PRINT("database_alloc_kv() Failed to allocate kv_record_tbl\n");
+            return -1;
+        }
+        rec_database->kv_record_count = 1;
     }
     else {
+        free_kv = -1;
         for(int i = 0; i < rec_database->kv_record_count; i++) {
+            if(!KV_RECORD_GET_SIZE(rec_database->kv_record_tbl[i])) {
+                free_kv = i;
+            }
+        }
+
+        // If we can't find a free record to annex, we should
+        // try to reallocate the record table
+        if(free_kv == -1) {
+            Record_kv *new_kv_tbl = (Record_kv *)
+                memory_realloc(
+                    rec_database->kv_record_tbl,
+                    rec_database->kv_record_count * sizeof(Record_kv),
+                    (rec_database->kv_record_count + 1) * sizeof(Record_kv)
+                    );
+            if(!new_kv_tbl) {
+                DEBUG_PRINT("database_alloc_kv(): Failed to increase the size of kv_record_tbl\n");
+                return -1;
+            }
+
+            free_kv = rec_database->kv_record_count;
+
+            rec_database->kv_record_tbl = new_kv_tbl;
+            rec_database->kv_record_count++;
         }
     }
 
     Record_kv *kv_rec = &rec_database->kv_record_tbl[free_kv];
+    DEBUG_PRINT("KV_REC: %d, %p, %p\n", free_kv, kv_rec, rec_database->kv_record_tbl);
 
     KV_RECORD_SET_FLAGS(kv_rec[0], 0);
     KV_RECORD_SET_SIZE(kv_rec[0], size);
@@ -431,5 +460,5 @@ database_alloc_kv(
 
     memcpy((unsigned char *)(ptbl_entry->m_offset + value_offset), buffer, size);
 
-    return 1;
+    return free_kv;
 }
