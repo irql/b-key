@@ -374,17 +374,29 @@ database_alloc_kv(
     int i, free = -1;
     for(i = 0; i < PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]) && free == -1; i++) {
         int j;
+        DEBUG_PRINT("%d:\t", i);
         for(j = 0; j < PTBL_CALC_PAGE_USAGE_BYTES(bucket) && free == -1; j++) {
             int k;
-            unsigned char bits = ptbl_entry->page_usage[i * j];
+            int index = (i * PTBL_CALC_PAGE_USAGE_BYTES(bucket)) + j;
+            unsigned char bits = ptbl_entry->page_usage[index];
+            DEBUG_PRINT("%02x ", bits);
             for(k = 0; k < 8 && free == -1; k++) {
-                if( 0 == (bits & (1 << k)) ) {
+                if( !(bits & (1 << k)) ) {
                     // Mark value slot as used since we will occupy the empty slot
-                    ptbl_entry->page_usage[i * j] |= (1 << k);
-                    free = (i * j * 8 * (1 << (4 + bucket))) + (k * (1 << (4 + bucket)));
+                    ptbl_entry->page_usage[index] |= (1 << k);
+                    free = (index * 8 * (1 << (4 + bucket))) + (k * (1 << (4 + bucket)));
                 }
             }
         }
+        DEBUG_PRINT("\n");
+    }
+
+    if(free == -1) {
+        // No free slots exist in any of the pages, so we need to allocate a new page
+        if(!database_pages_alloc(ctx_main, rec_database, &ptbl_entry, 1, bucket)) {
+            return 0;
+        }
+        free = 0;
     }
 
     DEBUG_PRINT("database_alloc_kv() %d + %p = %p\n", free, ptbl_entry->m_offset, free + ptbl_entry->m_offset);

@@ -6,7 +6,7 @@ OUT=$(OUT_DIR)/test
 FLAGS=-Wimplicit-function-declaration -Woverflow
 
 # Default all optimizations
-#CC_OPTS=-c -I $(INC) -Ofast
+#CC_OPTS=-I $(INC) -Ofast
 
 # Debug
 CC_OPTS=-I $(INC) -g $(FLAGS)
