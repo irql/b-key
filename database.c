@@ -376,38 +376,40 @@ database_alloc_kv(
     }
 
     // Identify the first unused "slot" that can hold a value of the appropriate size
-    int free = -1;
-    for(int i = 0; i < PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]) && free == -1; i++) {
+    int free_index = -1;
+    for(int i = 0; i < PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]) && free_index == -1; i++) {
 
-        DEBUG_PRINT("%d:\t", i);
+        //DEBUG_PRINT("%d:\t", i);
 
-        for(int j = 0; j < PTBL_CALC_PAGE_USAGE_BYTES(bucket) && free == -1; j++) {
-            int index = (i * PTBL_CALC_PAGE_USAGE_BYTES(bucket)) + j;
+        for(int j = 0; j < PTBL_CALC_PAGE_USAGE_BYTES(bucket) && free_index == -1; j++) {
+            int index = (i * PTBL_CALC_PAGE_USAGE_BYTES(bucket)) + j; // page-level granularity
             unsigned char bits = ptbl_entry->page_usage[index];
 
-            DEBUG_PRINT("%02x ", bits);
+            //DEBUG_PRINT("%02x ", bits);
 
-            for(int k = 0; k < 8 && free == -1; k++) {
+            for(int k = 0; k < 8 && free_index == -1; k++) {
                 if( !(bits & (1 << k)) ) {
                     // Mark value slot as used since we will occupy the empty slot
                     ptbl_entry->page_usage[index] |= (1 << k);
-                    free = (index * 8 * (1 << (4 + bucket))) + (k * (1 << (4 + bucket)));
+                    free_index = (index * 8) + k; // value-level granularity //(index * 8 * (1 << (4 + bucket))) + (k * (1 << (4 + bucket)));
                 }
             }
         }
 
-        DEBUG_PRINT("\n");
+        //DEBUG_PRINT("\n");
     }
 
-    if(free == -1) {
+    if(free_index == -1) {
         // No free slots exist in any of the pages, so we need to allocate a new page
         if(!database_pages_alloc(ctx_main, rec_database, &ptbl_entry, 1, bucket)) {
             return 0;
         }
-        free = 0;
+        free_index = 0;
     }
 
-    DEBUG_PRINT("database_alloc_kv() %d + %p = %p\n", free, ptbl_entry->m_offset, free + ptbl_entry->m_offset);
+    unsigned long value_offset = free_index * (1 << (4 + bucket));
+
+    DEBUG_PRINT("database_alloc_kv() %d + %p = %p\n", free_index, ptbl_entry->m_offset, ptbl_entry->m_offset + value_offset);
 
     // We need to find a free spot in the kv_record table and occupy it
     unsigned long free_kv = 0;
@@ -416,10 +418,18 @@ database_alloc_kv(
         rec_database->kv_record_count = 0;
     }
     else {
+        for(int i = 0; i < rec_database->kv_record_count; i++) {
+        }
     }
 
-    unsigned char *value = ptbl_entry->m_offset + free;
-    memcpy(value, buffer, size);
+    Record_kv *kv_rec = &rec_database->kv_record_tbl[free_kv];
+
+    KV_RECORD_SET_FLAGS(kv_rec[0], 0);
+    KV_RECORD_SET_SIZE(kv_rec[0], size);
+    KV_RECORD_SET_BUCKET(kv_rec[0], bucket);
+    KV_RECORD_SET_INDEX(kv_rec[0], free_index);
+
+    memcpy((unsigned char *)(ptbl_entry->m_offset + value_offset), buffer, size);
 
     return 1;
 }
