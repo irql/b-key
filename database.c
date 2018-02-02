@@ -60,7 +60,7 @@ void database_ptbl_init(
 
     PTBL_RECORD_SET_KEY(ptbl_entry[0], bucket);
 
-    ptbl_entry->m_offset = memory_page_alloc(ctx_main, page_count);
+    ptbl_entry->m_offset = memory_page_alloc(ctx_main, ((bucket <= 8) ? page_count : (page_count << (bucket - 8))));
     PTBL_RECORD_SET_PAGE_COUNT(ptbl_entry[0], page_count);
 }
 
@@ -215,7 +215,7 @@ database_pages_alloc(
                      (ptbl->page_usage[i] & (mask << (bits * k)))
                      >> (bits * k)
                     );
-                DEBUG_PRINT("%d: %d\n", (i * (8 / bits)) + k, usage);
+                DEBUG_PRINT("%d: %d\n", (i * ppb) + k, usage);
                 if(usage == 0) {
                     free++;
                     j = k + 1;
@@ -268,14 +268,13 @@ database_pages_alloc(
 
     if(!offset || last_free_page != -1) {
         // Realloc (add) more pages
-        // TODO: Decide if we want to support buckets > 8 (i.e. bucket x after 8 holds 4096 * (1 << (x - 8)) )
         int new_page_count = PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]) + page_count - free_pages;
 
         offset = memory_page_realloc(
                 ctx_main,
                 ptbl->m_offset,
                 PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]),
-                new_page_count * ((bucket <= 8) ? 1 : (1 << (bucket - 8)))
+                ((bucket <= 8) ? new_page_count : (new_page_count << (bucket - 8)))
                 );
 
         if(!offset) {
@@ -427,32 +426,24 @@ database_alloc_kv(
     }
 
     // Identify the first unused "slot" that can hold a value of the appropriate size
-    int free_index = -1;
-    for(int i = 0; i < PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]) && free_index == -1; i++) {
+    int free_index = -1,
+        page_count = PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]),
+        page_usage_bytes = PTBL_CALC_PAGE_USAGE_BYTES(bucket),
+        page_usage_bits = PTBL_CALC_PAGE_USAGE_BITS(bucket);
 
-        //DEBUG_PRINT("%d:\t", i);
-
-        for(int j = 0; j < PTBL_CALC_PAGE_USAGE_BYTES(bucket) && free_index == -1; j++) {
-            int index = (i * PTBL_CALC_PAGE_USAGE_BYTES(bucket)) + j; // page-level granularity
-            unsigned char bits = ptbl_entry->page_usage[index];
-
-            //DEBUG_PRINT("%02x ", bits);
-
-            for(int k = 0; k < 8 && free_index == -1; k++) {
-                if( !(bits & (1 << k)) ) {
-                    // Mark value slot as used since we will occupy the empty slot
-                    ptbl_entry->page_usage[index] |= (1 << k);
-                    free_index = (index * 8) + k; // value-level granularity
-
-                    // TODO: Remove this check
-                    if(free_index, free_index != ((free_index / 8) * 8) + (free_index % 8)) {
-                        return -1;
-                    }
-                }
+    for(int i = 0; i < ptbl_entry->page_usage_length && free_index == -1; i++) {
+        unsigned char bits = ptbl_entry->page_usage[i];
+        int max = 8;
+        if(page_usage_bits < 8) {
+            if(!(max = ((page_count * page_usage_bits) % 8))) {
+                max = 8;
             }
         }
-
-        //DEBUG_PRINT("\n");
+        for(int j = 0; j < max && free_index == -1; j++) {
+            // Mark value slot as used since we will occupy the empty slot
+            ptbl_entry->page_usage[i] |= (1 << j);
+            free_index = i * 8 + j;
+        }
     }
 
     if(free_index == -1) {
@@ -460,7 +451,7 @@ database_alloc_kv(
         if(!database_pages_alloc(ctx_main, rec_database, &ptbl_entry, 1, bucket)) {
             return -1;
         }
-        free_index = (PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]) - 1) * PTBL_CALC_PAGE_USAGE_BYTES(bucket) * 8;
+        free_index = (page_count - 1) * page_usage_bytes * 8;
         ptbl_entry->page_usage[free_index / 8] |= 1;
     }
 

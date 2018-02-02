@@ -18,7 +18,7 @@
 #define DEBUG_PRINT(...)
 #endif
 
-#define TEST_MAX_BUCKET 1
+#define TEST_MAX_BUCKET 23
 
 enum {
     TEST_FAILED,
@@ -332,41 +332,39 @@ int run_tests(struct main_context * main_context) {
     for(i = 0; i < TEST_MAX_BUCKET; i++) {
         unsigned long length = 16 << i;
         unsigned int bucket = database_calc_bucket(length);
-        unsigned long max_j = // Test as many allocs as we can, but don't go over 512MB of used data
-            (0x80 * main_context->system_page_size) / length;
+        unsigned long max_j = // Test as many allocs as we can, but don't go over 65MB
+            (0x10 * main_context->system_page_size) / length;
 
         // Test that database_calc_bucket() calculates the correct bucket number
         // for varying buffer (value) lengths
         ASSERT(bucket == i, "database_calc_bucket()");
 
+#define TEST_ALLOC_KV(x) \
+        for(int j = 0; j < max_j; j++) { \
+            unsigned long k = database_alloc_kv(main_context, database, 1, length, buffer); \
+            ASSERT(-1 != k, "database_alloc_kv() succeeds"); \
+            if(x > 0) { \
+                ASSERT(((j + (x - 1)) / x) == k, "database_alloc_kv() returns correct k"); \
+                if(j % x) { \
+                    ASSERT(database_kv_free(main_context, database, k), "database_kv_free()"); \
+                } \
+            } \
+            else { \
+                ASSERT(j == k, "database_alloc_kv() Returns correct k"); \
+            } \
+        }\
+        for(int k = database->kv_record_count - 1; k >= 0; k--) { \
+            ASSERT(database_kv_free(main_context, database, k), "database_kv_free()"); \
+        }
+
         /* Phase 1: Contiguous allocation and contiguous free */
 
         DEBUG_PRINT("Bucket %d: Allocating %d values\n", bucket, max_j);
-        for(int j = 0; j < max_j; j++) {
-            unsigned long k = database_alloc_kv(main_context, database, 1, length, buffer);
-            ASSERT(-1 != k, "database_alloc_kv() succeeds");
-            ASSERT(j == k, "database_alloc_kv() Returns correct k");
-        }
+        TEST_ALLOC_KV(0);
 
-        for(int k = database->kv_record_count - 1; k >= 0; k--) {
-            ASSERT(database_kv_free(main_context, database, k), "database_kv_free() succeeds");
-        }
-
-        /* Phase 2: Every second KV free'd */
-        for(int j = 0; j < max_j; j++) {
-            unsigned long k = database_alloc_kv(main_context, database, 1, length, buffer);
-            ASSERT(-1 != k, "database_alloc_kv() succeeds");
-            DEBUG_PRINT("%d, ", k);
-            ASSERT(((j + 1) / 2) == k, "database_alloc_kv() Returns correct k");
-            if(j % 2) {
-                ASSERT(database_kv_free(main_context, database, k), "database_kv_free() succeeds");
-            }
-        }
-
-        ASSERT(database->kv_record_count == max_j / 2, "The correct number of keys were allocated");
-
-        for(int k = database->kv_record_count - 1; k >= 0; k--) {
-            ASSERT(database_kv_free(main_context, database, k), "database_kv_free() succeeds");
+        /* Phase 2: Every l'th KV free'd */
+        for(int l = 2; l < 10; l++) {
+            TEST_ALLOC_KV(l);
         }
     }
 
