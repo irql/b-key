@@ -334,7 +334,7 @@ void database_pages_free(
         rec_database->ptbl_record_count = 0;
         rec_database->ptbl_record_tbl = 0;
 
-        if(rec_database->kv_record_count) {
+        if(rec_database->kv_record_tbl) {
             memory_free(rec_database->kv_record_tbl);
         }
         rec_database->kv_record_count = 0;
@@ -389,6 +389,9 @@ database_kv_free(
     // FINALLY, set record size to 0
     KV_RECORD_SET_SIZE(kv_rec[0], 0);
 
+    // ...and decrement kv_record_count
+    rec_database->kv_record_count--;
+
     return 1;
 }
 
@@ -400,7 +403,7 @@ database_alloc_kv(
     unsigned long size,
     unsigned char *buffer
 ) {
-    DEBUG_PRINT("database_alloc_kv(data_type = %d, size = %d, buffer = %p);\n", data_type, size, buffer);
+    DEBUG_PRINT("database_alloc_kv(flags = %02x, size = %d, buffer = %p);\n", flags, size, buffer);
 
     // Allocate based on page-table mappings
     // If no page table exists for records of
@@ -457,12 +460,13 @@ database_alloc_kv(
         if(!database_pages_alloc(ctx_main, rec_database, &ptbl_entry, 1, bucket)) {
             return -1;
         }
-        free_index = 0;
+        free_index = (PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]) - 1) * PTBL_CALC_PAGE_USAGE_BYTES(bucket) * 8;
+        ptbl_entry->page_usage[free_index / 8] |= 1;
     }
 
     unsigned long value_offset = free_index * PTBL_CALC_BUCKET_WORD_SIZE(bucket);
 
-    DEBUG_PRINT("database_alloc_kv() %d + %p = %p\n", free_index, ptbl_entry->m_offset, ptbl_entry->m_offset + value_offset);
+    DEBUG_PRINT("database_alloc_kv() %d(%d) + %p = %p\n", free_index, value_offset, ptbl_entry->m_offset, ptbl_entry->m_offset + value_offset);
 
     // We need to find a free spot in the kv_record table and occupy it
     unsigned long free_kv = 0;

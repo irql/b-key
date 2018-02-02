@@ -348,7 +348,7 @@ int run_tests(struct main_context * main_context) {
             ASSERT(j == k, "database_alloc_kv() Returns correct k");
         }
 
-        for(int k = max_j; k > 0; k--) {
+        for(int k = database->kv_record_count - 1; k >= 0; k--) {
             ASSERT(database_kv_free(main_context, database, k), "database_kv_free() succeeds");
         }
 
@@ -357,10 +357,16 @@ int run_tests(struct main_context * main_context) {
             unsigned long k = database_alloc_kv(main_context, database, 1, length, buffer);
             ASSERT(-1 != k, "database_alloc_kv() succeeds");
             DEBUG_PRINT("%d, ", k);
-            ASSERT(j == k, "database_alloc_kv() Returns correct k");
+            ASSERT(((j + 1) / 2) == k, "database_alloc_kv() Returns correct k");
             if(j % 2) {
                 ASSERT(database_kv_free(main_context, database, k), "database_kv_free() succeeds");
             }
+        }
+
+        ASSERT(database->kv_record_count == max_j / 2, "The correct number of keys were allocated");
+
+        for(int k = database->kv_record_count - 1; k >= 0; k--) {
+            ASSERT(database_kv_free(main_context, database, k), "database_kv_free() succeeds");
         }
     }
 
