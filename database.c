@@ -331,6 +331,12 @@ void database_pages_free(
         memory_free(rec_database->ptbl_record_tbl);
         rec_database->ptbl_record_count = 0;
         rec_database->ptbl_record_tbl = 0;
+
+        if(rec_database->kv_record_count) {
+            memory_free(rec_database->kv_record_tbl);
+        }
+        rec_database->kv_record_count = 0;
+        rec_database->kv_record_tbl = 0;
     }
 }
 
@@ -376,7 +382,9 @@ database_kv_free(
     memset(region, 0, bucket_wsz);
 
     // Mark value as freed in page_usage
+    ptbl_entry->page_usage[kv_index / 8] &= ~((unsigned char)1 << (kv_index % 8));
 
+    // FINALLY, set record size to 0
     KV_RECORD_SET_SIZE(kv_rec[0], 0);
 
     return 1;

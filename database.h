@@ -21,6 +21,13 @@ database_pages_free(
     );
 
 
+int
+database_kv_free(
+    Context_main *ctx_main,
+    Record_database *rec_database,
+    unsigned long k
+    );
+
 unsigned long
 database_alloc_kv(
     Context_main *ctx_main,

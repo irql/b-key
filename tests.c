@@ -339,7 +339,9 @@ int run_tests(struct main_context * main_context) {
         // Test as many allocs as we can, but don't go over 512MB of used data
         DEBUG_PRINT("Bucket %d: Allocating 10 values\n", bucket);
         for(int j = 0; j < (0x80 * main_context->system_page_size) / length; j++) {
-            ASSERT(-1 != database_alloc_kv(main_context, database, 1, length, buffer), "database_alloc_kv()");
+            unsigned long k = database_alloc_kv(main_context, database, 1, length, buffer);
+            ASSERT(-1 != k, "database_alloc_kv()");
+            //database_kv_free(main_context, database, k);
         }
     }
 
