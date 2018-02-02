@@ -429,6 +429,11 @@ database_alloc_kv(
                     // Mark value slot as used since we will occupy the empty slot
                     ptbl_entry->page_usage[index] |= (1 << k);
                     free_index = (index * 8) + k; // value-level granularity
+
+                    // TODO: Remove this check
+                    if(free_index, free_index != ((free_index / 8) * 8) + (free_index % 8)) {
+                        return -1;
+                    }
                 }
             }
         }
@@ -439,7 +444,7 @@ database_alloc_kv(
     if(free_index == -1) {
         // No free slots exist in any of the pages, so we need to allocate a new page
         if(!database_pages_alloc(ctx_main, rec_database, &ptbl_entry, 1, bucket)) {
-            return 0;
+            return -1;
         }
         free_index = 0;
     }
