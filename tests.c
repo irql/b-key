@@ -359,24 +359,16 @@ int run_tests(struct main_context * main_context) {
 
         /* Phase 1: Contiguous allocation and contiguous free */
 
-        DEBUG_PRINT("Bucket %d: Allocating %d values\n", bucket, max_j);
         TEST_ALLOC_KV(0);
 
         /* Phase 2: Every l'th KV free'd */
+
         for(int l = 2; l < 10; l++) {
             TEST_ALLOC_KV(l);
         }
     }
 
     memory_page_free(main_context, buffer, pages_count);
-
-    /*
-    database->ptbl_record_tbl[0].page_usage[0] = 3;
-    database_alloc_kv(main_context, database, 1, 12, "this is a test");
-
-    for(i = 0; i < 32; i++)
-    database->ptbl_record_tbl[0].page_usage[i] = 0xff;
-    */
 
     database_pages_free(main_context, database);
     memory_free(database);
