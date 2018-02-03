@@ -20,10 +20,10 @@ typedef struct ptbl_record {
     /** @brief Holds the uppermost three bits of \a key and all
      *         bits of \a page_count
      *
-     * | Range in bits | Size in bits | Description |
-     * | ------------- | -----------: | ----------- |
-     * | 0 - 2         | 3            | \a key (high)  |
-     * | 3 - 31        | 31           | \a page_count  |
+     * | Range in bits | Size in bits | Description   |
+     * | ------------- | -----------: | -----------   |
+     * |  0 - 28       | 29           | \a page_count |
+     * | 29 - 31       | 3            | \a key (high) |
      *
      * @see PTBL_RECORD_SET_PAGE_COUNT()
      * @see PTBL_RECORD_GET_PAGE_COUNT()
@@ -37,8 +37,8 @@ typedef struct ptbl_record {
      *
      * | Range in bits | Size in bits | Description |
      * | ------------- | -----------: | ----------- |
-     * | 0 - 2         | 3            | \a key (low )  |
-     * | 3 - 31        | 31           | \a offset      |
+     * |  0 - 28       | 29           | \a offset   |
+     * | 29 - 31       | 3            | \a key (low)|
      *
      * @see PTBL_RECORD_SET_OFFSET()
      * @see PTBL_RECORD_GET_OFFSET()
@@ -47,7 +47,10 @@ typedef struct ptbl_record {
      */
     unsigned int key_low_and_offset;
     
-    unsigned char *m_offset; ///< A pointer to the start of the allocated pages in memory
+    /** @brief A pointer to the start of the allocated pages in memory
+     * @see kv_record.bucket_and_index
+     */
+    unsigned char *m_offset;
 
     unsigned int page_usage_length; ///< The length of \a page_usage in bytes
 
@@ -124,92 +127,271 @@ typedef struct ptbl_record {
  * @param x bucket \f$0 \leq x \leq 63\f$
  * @returns max value length in bytes
  * @see ptbl_record
+ * @see kv_record.bucket_and_index
  *
  */
 #define PTBL_CALC_BUCKET_WORD_SIZE(x) (1 << (4 + x))
 
-#define PTBL_KEY_BITMASK (0xE0 << 24)
-#define PTBL_KEY_HIGH_BITMASK 0x38
-#define PTBL_KEY_LOW_BITMASK 0x7
+#define PTBL_KEY_BITMASK (0xE0 << 24) ///< Used for selecting the uppermost three bits
+#define PTBL_KEY_HIGH_BITMASK 0x38 ///< Upper three bits
+#define PTBL_KEY_LOW_BITMASK 0x7 ///< Lower three bits
+
+/** @brief Amount to shift the bits in ptbl_record.key_high_and_page_count
+ *  right by to get the uppermost three bits of \a key
+ */
 #define PTBL_KEY_HIGH_SHIFT 26
+
+/** @brief Amount to shift the bits in ptbl_record.key_low_and_offset
+ *  right by to get the lowermost three bits of \a key
+ */
 #define PTBL_KEY_LOW_SHIFT 29
 
-// Helpers to extract the page_count and offset sans bits from key
-
+/** @brief Get \a page_count from a ptbl_record
+ *
+ * @param x ptbl_record (\b not a pointer)
+ *
+ * @see ptbl_record.key_high_and_page_count
+ *
+ */
 #define PTBL_RECORD_GET_PAGE_COUNT(x) (x.key_high_and_page_count & ~PTBL_KEY_BITMASK)
+
+/** @brief Set \a page_count in a ptbl_record
+ *
+ * @param x ptbl_record (\b not a pointer)
+ * @param y new \a page_count (unsigned long)
+ *
+ * @see ptbl_record.key_high_and_page_count
+ *
+ */
 #define PTBL_RECORD_SET_PAGE_COUNT(x,y) \
     x.key_high_and_page_count &= PTBL_KEY_BITMASK; \
-    x.key_high_and_page_count |= ((unsigned long)y & ~PTBL_KEY_BITMASK);
+    x.key_high_and_page_count |= ((unsigned int)y & ~PTBL_KEY_BITMASK);
 
-#define PTBL_RECORD_GET_OFFSET(x) (x.key_high_and_page_count & ~PTBL_KEY_BITMASK)
+/** @brief Get \a offset from a ptbl_record
+ *
+ * @param x ptbl_record (\b not a pointer)
+ *
+ * @see ptbl_record.key_low_and_offset
+ *
+ */
+#define PTBL_RECORD_GET_OFFSET(x) (x.key_low_and_offset & ~PTBL_KEY_BITMASK)
+
+/** @brief Set \a offset in a ptbl_record
+ *
+ * @param x ptbl_record (\b not a pointer)
+ * @param y new \a offset (unsigned int)
+ *
+ * @see ptbl_record.key_low_and_offset
+ *
+ */
 #define PTBL_RECORD_SET_OFFSET(x,y) \
     x.key_low_and_offset &= PTBL_KEY_BITMASK; \
-    x.key_low_and_offset |= ((unsigned long)y & ~PTBL_KEY_BITMASK);
+    x.key_low_and_offset |= ((unsigned int)y & ~PTBL_KEY_BITMASK);
 
-// The 6-bit key is sharded out to the upper three bits of the page_count and offset fields
+/** @brief Get \a key from a ptbl_record
+ *
+ * Note that \a key is the bucket number.
+ *
+ * @param x ptbl_record (\b not a pointer)
+ *
+ * @see ptbl_record.key_high_and_page_count
+ * @see ptbl_record.key_low_and_offset
+ *
+ */
 #define PTBL_RECORD_GET_KEY(x) (((x.key_high_and_page_count & PTBL_KEY_BITMASK) >> PTBL_KEY_HIGH_SHIFT) | ((x.key_low_and_offset & PTBL_KEY_BITMASK) >> PTBL_KEY_LOW_SHIFT))
 
-// Only to be called once, upon initialization of the record.
-// Once set, the key is expected to _NEVER_ change.
+/** @brief Set \a key in a ptbl_record
+ *
+ * Note that \a key is the bucket number.
+ *
+ * This macro is only to be called once, upon initialization of the record.
+ * Once set, the \a key (bucket) is expected to \b never change.
+ *
+ * @param x ptbl_record (\b not a pointer)
+ * @param y bucket \f$0 \leq y \leq 63\f$
+ *
+ * @see ptbl_record.key_high_and_page_count
+ * @see ptbl_record.key_low_and_offset
+ *
+ */
 #define PTBL_RECORD_SET_KEY(x,y) \
     x.key_high_and_page_count &= ~PTBL_KEY_BITMASK; \
     x.key_low_and_offset &= ~PTBL_KEY_BITMASK; \
     x.key_high_and_page_count |= ((y & PTBL_KEY_HIGH_BITMASK) << PTBL_KEY_HIGH_SHIFT); \
     x.key_low_and_offset |= ((y & PTBL_KEY_LOW_BITMASK) << PTBL_KEY_LOW_SHIFT);
 
-// K/V Record
+/** @brief Holds information for a key/value pair, including the
+ *         bucket the value resides in, it's \a index (offset) into
+ *         the bucket (ptbl_record.m_offset + \a index), in
+ *         addition to the size of the value in bytes
+ *
+ * This record has four composed values, which are encoded using the
+ * bits of \a flags_and_size and \a bucket_and_index and require a
+ * macro to either get or set them.
+ *
+ * The composed values are:
+ * - \a flags - The data type of the KV
+ * - \a size - The size of the value in bytes
+ * - \a bucket - Which bucket (ptbl_record) the page that holds this value resides in
+ * - \a index - Used to determine the offset into the pages of bucket that this
+ *              value starts at (value = ptbl_record.m_offset + index * PTBL_CALC_BUCKET_WORD_SIZE(bucket))
+ *
+ */
 typedef struct kv_record {
-    /*
-     * 0 -  7 ( 8b): flags
-     * 8 - 63 (56b): size
+    /** @brief Holds the bits of both \a flags and \a size
+     *
+     * | Range in bits | Size in bits | Description |
+     * | ------------- | -----------: | ----------- |
+     * |  0 - 55       | 56           | \a size     |
+     * | 56 - 63       | 8            | \a flags    |
+     *
+     * @see KV_RECORD_GET_SIZE()
+     * @see KV_RECORD_SET_SIZE()
+     * @see KV_RECORD_GET_FLAGS()
+     * @see KV_RECORD_SET_FLAGS()
      */
     unsigned long flags_and_size;
 
-    /*
-     * 0 -  5 ( 6b): bucket
-     * 6 - 63 (58b): index (page base + index * max bucket value length)
+    /** @brief Holds the bits of both \a bucket and \a index
+     *
+     * \a index is used to determine the offset into the pages
+     * of \a bucket that this value starts at.
+     *
+     * value = ptbl_record.m_offset + \a index * PTBL_CALC_BUCKET_WORD_SIZE(bucket)
+     *
+     * | Range in bits | Size in bits | Description |
+     * | ------------- | -----------: | ----------- |
+     * |  0 - 57       | 58           | \a index    |
+     * | 58 - 63       | 6            | \a bucket   |
+     *
+     * @see KV_RECORD_GET_BUCKET()
+     * @see KV_RECORD_SET_BUCKET()
+     * @see KV_RECORD_GET_INDEX()
+     * @see KV_RECORD_SET_INDEX()
      */
     unsigned long bucket_and_index;
 } Record_kv;
 
-#define KV_RECORD_BUCKET_SHIFT 58
-#define KV_RECORD_BUCKET_BITMASK ((unsigned long)0x3F << KV_RECORD_BUCKET_SHIFT)
+#define KV_RECORD_BUCKET_SHIFT 58 ///< Amount to shift \a bucket_and_index right by to extract \a bucket
+#define KV_RECORD_BUCKET_BITMASK ((unsigned long)0x3F << KV_RECORD_BUCKET_SHIFT) ///< To select the upper six bits
 
+/** @brief Get \a bucket from a kv_record
+ *
+ * @param x kv_record (\b not a pointer)
+ *
+ * @see kv_record.bucket_and_index
+ *
+ */
 #define KV_RECORD_GET_BUCKET(x) ((x.bucket_and_index & KV_RECORD_BUCKET_BITMASK) >> KV_RECORD_BUCKET_SHIFT)
+
+/** @brief Set \a bucket in a kv_record
+ *
+ * @param x kv_record (\b not a pointer)
+ * @param y bucket \f$0 \leq y \leq 63\f$
+ *
+ * @see kv_record.bucket_and_index
+ *
+ */
 #define KV_RECORD_SET_BUCKET(x,y) \
     x.bucket_and_index &= ~KV_RECORD_BUCKET_BITMASK; \
     x.bucket_and_index |= ((unsigned long)(y & (KV_RECORD_BUCKET_BITMASK >> KV_RECORD_BUCKET_SHIFT)) << KV_RECORD_BUCKET_SHIFT);
 
+/** @brief Get \a index from a kv_record
+ *
+ * @param x kv_record (\b not a pointer)
+ *
+ * @see kv_record.bucket_and_index
+ *
+ */
 #define KV_RECORD_GET_INDEX(x) (x.bucket_and_index & ~KV_RECORD_BUCKET_BITMASK)
+
+/** @brief Set \a index in a kv_record
+ *
+ * @param x kv_record (\b not a pointer)
+ * @param y index
+ *
+ * @see kv_record.bucket_and_index
+ *
+ */
 #define KV_RECORD_SET_INDEX(x,y) \
     x.bucket_and_index &= KV_RECORD_BUCKET_BITMASK; \
     x.bucket_and_index |= (y & ~KV_RECORD_BUCKET_BITMASK);
 
-#define KV_RECORD_FLAGS_SHIFT 56
-#define KV_RECORD_FLAGS_BITMASK ((unsigned long)0xFF << KV_RECORD_FLAGS_SHIFT)
+#define KV_RECORD_FLAGS_SHIFT 56 ///< Amount to shift \a flags_and_size right by to extract \a flags
+#define KV_RECORD_FLAGS_BITMASK ((unsigned long)0xFF << KV_RECORD_FLAGS_SHIFT) ///< To select the upper 8 bits
 
+/** @brief Get \a size from a kv_record
+ *
+ * @param x kv_record (\b not a pointer)
+ * @returns Size of the value in bytes
+ *
+ * @see kv_record.flags_and_size
+ *
+ */
 #define KV_RECORD_GET_SIZE(x) (x.flags_and_size & ~KV_RECORD_FLAGS_BITMASK)
+
+/** @brief Set \a size in a kv_record
+ *
+ * @param x kv_record (\b not a pointer)
+ * @param y size
+ *
+ * @see kv_record.flags_and_size
+ *
+ */
 #define KV_RECORD_SET_SIZE(x,y) \
     x.flags_and_size &= KV_RECORD_FLAGS_BITMASK; \
     x.flags_and_size |= (y & ~KV_RECORD_FLAGS_BITMASK);
 
+/** @brief Get \a flags in a kv_record
+ *
+ * @param x kv_record (\b not a pointer)
+ *
+ * @see kv_record.flags_and_size
+ *
+ */
 #define KV_RECORD_GET_FLAGS(x) ((x.flags_and_size & KV_RECORD_FLAGS_BITMASK) >> KV_RECORD_FLAGS_SHIFT)
+
+/** @brief Set \a flags in a kv_record
+ *
+ * @param x kv_record (\b not a pointer)
+ * @param y flags
+ *
+ * @see kv_record.flags_and_size
+ *
+ */
 #define KV_RECORD_SET_FLAGS(x,y) \
     x.flags_and_size &= ~KV_RECORD_FLAGS_BITMASK; \
     x.flags_and_size |= ((unsigned long)(y & (KV_RECORD_FLAGS_BITMASK >> KV_RECORD_FLAGS_SHIFT)) << KV_RECORD_FLAGS_SHIFT);
 
-// Master Record
+/** @brief Holds the global state of the database */
 typedef struct database_record {
-    // blocks of 4096 allocated
-    unsigned long int page_count;
-    unsigned long int kv_record_count;
-    unsigned long int ptbl_record_count;
-    struct ptbl_record *ptbl_record_tbl;
-    struct kv_record *kv_record_tbl;
+    unsigned long int ptbl_record_count; ///< Total number of records in \a ptbl_record_tbl
+    struct ptbl_record *ptbl_record_tbl; ///< All records for this database
+    unsigned long int kv_record_count; ///< Total number of records in \a kv_record_tbl
+    struct kv_record *kv_record_tbl; ///< All records for this database
 } Record_database;
 
+/** @brief Helper to instantiate a new record type
+ *
+ * This will create a new variable, in addition to
+ * allocating space for it.
+ *
+ * @param x Record type
+ * @param y Variable name
+ *
+ */
 #define RECORD_CREATE(x,y) \
-    x *y = (x *)memory_alloc(sizeof(x));
+    x *y = (x *)memory_alloc(sizeof(x))
 
+/** @brief Helper to allocate a new record type
+ *
+ * This will only allocate \a sizeof(x) bytes, and
+ * assign it to \a y. It does not create a new
+ * variable named \a y.
+ *
+ * @param x Record type
+ * @param y Variable name
+ *
+ */
 #define RECORD_ALLOC(x, y) \
-    y = (x *)memory_alloc(sizeof(x));
+    y = (x *)memory_alloc(sizeof(x))

@@ -84,13 +84,16 @@ int run_tests(struct main_context * main_context) {
 
     ASSERT(0x38 == PTBL_RECORD_GET_KEY(ctx->ptbl_rec), "PTBL_RECORD_GET_KEY()");
 
+    ctx->ptbl_rec.key_high_and_page_count = 0;
+
     PTBL_RECORD_SET_OFFSET(ctx->ptbl_rec, 0xffffffff);
     ASSERT(0x1fffffff == ctx->ptbl_rec.key_low_and_offset, "PTBL_RECORD_SET_OFFSET()");
 
     ctx->ptbl_rec.key_low_and_offset = 0xffffffff;
     ASSERT(0x1fffffff == PTBL_RECORD_GET_OFFSET(ctx->ptbl_rec), "PTBL_RECORD_GET_OFFSET()");
 
-    ASSERT(0x3f == PTBL_RECORD_GET_KEY(ctx->ptbl_rec), "PTBL_RECORD_GET_KEY()");
+    // Because only the lower 3 bits should be flipped
+    ASSERT(0x07 == PTBL_RECORD_GET_KEY(ctx->ptbl_rec), "PTBL_RECORD_GET_KEY()");
 
     ctx->ptbl_rec.key_high_and_page_count = 0;
     ctx->ptbl_rec.key_low_and_offset = 0;
