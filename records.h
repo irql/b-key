@@ -1,22 +1,131 @@
-// Page Table Record
+/** @file records.h
+ *  @brief Data structures (and macros) that comprise the database index
+ */
+
+/** @brief Holds information relating to a bucket (\a key), including
+ *         the number of pages allocated, as well as a pointer to
+ *         those pages in memory.
+ *
+ * This record has three composed values, which are encoded using the
+ * bits of \a key_high_and_page_count and \a key_low_and_offset and
+ * require a macro to either get or set them.
+ *
+ * The composed values are:
+ * - \a key - bucket
+ * - \a page_count - Number of pages currently allocated
+ * - \a offset - (\b disk-only) An offset to the start of the page region
+ *
+ */
 typedef struct ptbl_record {
-    /*
-     * 0 -  2 ( 3b): key_high / key_low
-     * 3 - 31 (31b): page_count / offset
+    /** @brief Holds the uppermost three bits of \a key and all
+     *         bits of \a page_count
+     *
+     * | Range in bits | Size in bits | Description |
+     * | ------------- | -----------: | ----------- |
+     * | 0 - 2         | 3            | \a key (high)  |
+     * | 3 - 31        | 31           | \a page_count  |
+     *
+     * @see PTBL_RECORD_SET_PAGE_COUNT()
+     * @see PTBL_RECORD_GET_PAGE_COUNT()
+     * @see PTBL_RECORD_SET_KEY()
+     * @see PTBL_RECORD_GET_KEY()
      */
     unsigned int key_high_and_page_count;
+
+    /** @brief Holds the lowermost three bits of \a key and all
+     *         bits of \a offset
+     *
+     * | Range in bits | Size in bits | Description |
+     * | ------------- | -----------: | ----------- |
+     * | 0 - 2         | 3            | \a key (low )  |
+     * | 3 - 31        | 31           | \a offset      |
+     *
+     * @see PTBL_RECORD_SET_OFFSET()
+     * @see PTBL_RECORD_GET_OFFSET()
+     * @see PTBL_RECORD_SET_KEY()
+     * @see PTBL_RECORD_GET_KEY()
+     */
     unsigned int key_low_and_offset;
     
-    unsigned char *m_offset;
+    unsigned char *m_offset; ///< A pointer to the start of the allocated pages in memory
 
-    unsigned int page_usage_length; // in bytes
+    unsigned int page_usage_length; ///< The length of \a page_usage in bytes
+
+    /** @brief Bookkeeping for usage status of all values across
+     *         all pages managed by this \a ptbl_record
+     *
+     * @see PTBL_CALC_PAGE_USAGE_BYTES()
+     * @see PTBL_CALC_PAGE_USAGE_BITS()
+     *
+     */
     unsigned char *page_usage;
 } Record_ptbl;
 
-// 32 bytes (4w) per page for bucket #0 (16 byte values) (4096 / 16 = 256bits. 256/8 = 32 bytes)
-// 16 bytes (2w) per page for bucket #1 (32 byte vlaues)
+/** @brief Calculate bytes used by one pages bookkeeping
+ *
+ * Computes the number of bytes it would take to represent the
+ * usage status of every value inside a page of bucket \a x
+ *
+ * | Bucket | bytes |
+ * | -----: | ----: |
+ * | 0      | 32    |
+ * | 1      | 16    |
+ * | 2      | 8     |
+ * | \a x   | (32 >> \a x)|
+ * | 5      | 1     |
+ * | 6      | ^     |
+ * | \a x   | ^     |
+ *
+ * @param x bucket \f$0 \leq x \leq 63\f$
+ * @returns number of bytes
+ * @see PTBL_CALC_PAGE_USAGE_BITS()
+ * @see ptbl_record
+ *
+ */
 #define PTBL_CALC_PAGE_USAGE_BYTES(x) ((x < 5) ? (32 >> x) : 1)
+
+/** @brief Calculate bits used by one page's bookkeeping
+ *
+ * Computes the number of bits it would take to represent the
+ * usage status of every value inside a page of bucket * \a x
+ *
+ * | Bucket | bits |
+ * | -----: | ----: |
+ * | 0      | 256   |
+ * | 1      | 128   |
+ * | 2      | 64    |
+ * | \a x   | (256 >> \a x)|
+ * | 8      | 1     |
+ * | 9      | ^     |
+ * | \a x   | ^     |
+ *
+ * @param x bucket \f$0 \leq x \leq 63\f$
+ * @returns number of bits
+ * @see PTBL_CALC_PAGE_USAGE_BYTES()
+ * @see ptbl_record
+ *
+ */
 #define PTBL_CALC_PAGE_USAGE_BITS(x) ((x < 8) ? (256 >> x) : 1)
+
+/** @brief Calculate max value size for bucket \a x
+ *
+ * Computes the maximum number of bytes that a value in
+ * a page in bucket \a x can occupy
+ *
+ * | Bucket | word size |
+ * | -----: | --------: |
+ * | 0      | 16B       |
+ * | 1      | 32B       |
+ * | 2      | 64B       |
+ * | 3      | 128B      |
+ * | \a x   | (1 << (4 + \a x)) |
+ * | 63     | 147EB     |
+ *
+ * @param x bucket \f$0 \leq x \leq 63\f$
+ * @returns max value length in bytes
+ * @see ptbl_record
+ *
+ */
 #define PTBL_CALC_BUCKET_WORD_SIZE(x) (1 << (4 + x))
 
 #define PTBL_KEY_BITMASK (0xE0 << 24)

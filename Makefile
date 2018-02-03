@@ -2,6 +2,7 @@ CC=gcc
 INC=./include
 OUT_DIR=./out
 OUT=$(OUT_DIR)/test
+DOC_DIR=./docs
 
 FLAGS=-Wimplicit-function-declaration -Woverflow
 
@@ -15,7 +16,10 @@ FILES=$(wildcard *.c)
 
 .PHONY=clean
 
-all: $(OUT_DIR) $(OUT)
+all: $(OUT_DIR) $(OUT) $(DOC_DIR)
+
+$(DOC_DIR): Doxyfile
+	doxygen
 
 $(OUT): $(FILES)
 	$(CC) $(CC_OPTS) -o $(OUT) $(FILES)
@@ -25,5 +29,6 @@ $(OUT_DIR):
 
 clean:
 	if [ -d $(OUT_DIR) ]; then rm -r $(OUT_DIR); fi
+	if [ -d $(DOC_DIR) ]; then rm -r $(DOC_DIR); fi
 
 vpath %.c .
