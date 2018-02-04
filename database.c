@@ -26,24 +26,6 @@ database_ptbl_search(
     return record;
 }
 
-int
-database_ptbl_calc_page_usage_length(
-    int bucket,
-    int page_count
-) {
-    unsigned int length = 0;
-
-    if(bucket < 6) {
-        length = ((bucket < 5) ? (32 >> bucket) : 1) * page_count;
-    }
-    else {
-        int bits = (bucket < 8) ? (256 >> bucket) : 1;
-        length = ((page_count * bits) / 8) + (((page_count * bits) % 8) > 0 ? 1 : 0);
-    }
-
-    return length;
-}
-
 void database_ptbl_init(
     Context_main *ctx_main,
     Record_ptbl *ptbl_entry,
@@ -51,7 +33,7 @@ void database_ptbl_init(
     int bucket
 ) {
     ptbl_entry->page_usage_length =
-        database_ptbl_calc_page_usage_length(bucket, page_count);
+        PTBL_CALC_PAGE_USAGE_LENGTH(bucket, page_count);
 
     // Leave page_usage bits zero, they will be set/unset
     // upon the storage or deletion of individual k/v pairs
@@ -281,7 +263,7 @@ database_pages_alloc(
             return 0;
         }
 
-        unsigned int new_page_usage_length = database_ptbl_calc_page_usage_length(bucket, new_page_count);
+        unsigned int new_page_usage_length = PTBL_CALC_PAGE_USAGE_LENGTH(bucket, new_page_count);
 
         // Current method doesn't garbage collect the page-tables (yet),
         // however we should avoid calling the realloc() function on
@@ -395,10 +377,10 @@ database_kv_free(
 }
 
 unsigned long
-database_alloc_kv(
+database_kv_alloc(
     Context_main *ctx_main,
     Record_database *rec_database,
-    char flags,
+    unsigned char flags,
     unsigned long size,
     unsigned char *buffer
 ) {
@@ -420,7 +402,7 @@ database_alloc_kv(
         }
     }
 
-    if(!ptbl_entry->page_usage || ptbl_entry->page_usage_length != database_ptbl_calc_page_usage_length(bucket, PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]))) {
+    if(!ptbl_entry->page_usage || ptbl_entry->page_usage_length != PTBL_CALC_PAGE_USAGE_LENGTH(bucket, PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]))) {
         DEBUG_PRINT("database_alloc_kv(): page_usage_length does not match page count\n");
         return -1;
     }

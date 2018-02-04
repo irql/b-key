@@ -14,8 +14,8 @@
 #include "debug.h"
 
 #ifndef DEBUG_TESTS
-#undef DEBUG_PRINT
-#define DEBUG_PRINT(...)
+    #undef DEBUG_PRINT
+    #define DEBUG_PRINT(...)
 #endif
 
 #define TEST_MAX_BUCKET 23
@@ -266,7 +266,7 @@ int run_tests(struct main_context * main_context) {
 
         ASSERT((count = PTBL_RECORD_GET_PAGE_COUNT(database->ptbl_record_tbl[i])) == 10, "Correct page_count");
 
-        ASSERT((count = database->ptbl_record_tbl[i].page_usage_length) == (count2 = database_ptbl_calc_page_usage_length(i, 10)), "Correct page_usage_length");
+        ASSERT((count = database->ptbl_record_tbl[i].page_usage_length) == (count2 = PTBL_CALC_PAGE_USAGE_LENGTH(i, 10)), "Correct page_usage_length");
 
         // Alloc a page in the same bucket (should be same result as first time because bucket will be empty)
         unsigned char *new_page_base = database_pages_alloc(main_context, database, 0, 1, i);
@@ -300,7 +300,7 @@ int run_tests(struct main_context * main_context) {
             // of a length < 5 to not need to expand the page table persay, because they will
             // be able to fit into the free space between pages.
             unsigned int expected_new_page_count = (j > 5) ? 2 + old_page_count : old_page_count;
-            unsigned int expected_new_page_usage_length = (j > 5) ? database_ptbl_calc_page_usage_length(i, expected_new_page_count) : old_page_usage_length;
+            unsigned int expected_new_page_usage_length = (j > 5) ? PTBL_CALC_PAGE_USAGE_LENGTH(i, expected_new_page_count) : old_page_usage_length;
 
             // Because we expect new_page_base to change entirely when it needs to remap the
             // pages because of MREMAP_MAYMOVE, we ignore this check (using -1) if j > 5
@@ -344,16 +344,16 @@ int run_tests(struct main_context * main_context) {
 
 #define TEST_ALLOC_KV(x) \
         for(int j = 0; j < max_j; j++) { \
-            unsigned long k = database_alloc_kv(main_context, database, 1, length, buffer); \
-            ASSERT(-1 != k, "database_alloc_kv() succeeds"); \
+            unsigned long k = database_kv_alloc(main_context, database, 1, length, buffer); \
+            ASSERT(-1 != k, "database_kv_alloc() succeeds"); \
             if(x > 0) { \
-                ASSERT(((j + (x - 1)) / x) == k, "database_alloc_kv() returns correct k"); \
+                ASSERT(((j + (x - 1)) / x) == k, "database_kv_alloc() returns correct k"); \
                 if(j % x) { \
                     ASSERT(database_kv_free(main_context, database, k), "database_kv_free()"); \
                 } \
             } \
             else { \
-                ASSERT(j == k, "database_alloc_kv() Returns correct k"); \
+                ASSERT(j == k, "database_kv_alloc() Returns correct k"); \
             } \
         }\
         for(int k = database->kv_record_count - 1; k >= 0; k--) { \

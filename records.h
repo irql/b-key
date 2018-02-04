@@ -64,6 +64,22 @@ typedef struct ptbl_record {
     unsigned char *page_usage;
 } Record_ptbl;
 
+/** @brief Calculate bytes used by multiple pages bookkeeping
+ *
+ * Computes the number of bytes it would take to represent the usage status of every value inside
+ * \a y pages of bucket \a x
+ *
+ * @param x bucket
+ * @param y number of pages
+ * @returns number of bytes
+ * @see PTBL_CALC_PAGE_USAGE_BYTES()
+ * @see PTBL_CALC_PAGE_USAGE_BITS()
+ * @see ptbl_record
+ */
+#define PTBL_CALC_PAGE_USAGE_LENGTH(x,y) ((x <= 5) ?\
+        (PTBL_CALC_PAGE_USAGE_BYTES(x) * y) :\
+        (((PTBL_CALC_PAGE_USAGE_BITS(x) * y) / 8) + (((PTBL_CALC_PAGE_USAGE_BITS(x) * y) % 8) > 0 ? 1 : 0)))
+
 /** @brief Calculate bytes used by one pages bookkeeping
  *
  * Computes the number of bytes it would take to represent the
