@@ -250,11 +250,11 @@ int run_tests(struct main_context * main_context) {
 	 * 62     | 73EB
 	 * 63     | 147EB
      */
-    database_pages_free(main_context, database);
+    database_ptbl_free(main_context, database);
     for(i = 0; i <= TEST_MAX_BUCKET; i++) {
         Record_ptbl *ptbl_entry;
         // Alloc a new bucket
-        unsigned char *page_base = database_pages_alloc(main_context, database, &ptbl_entry, 10, i);
+        unsigned char *page_base = database_ptbl_alloc(main_context, database, &ptbl_entry, 10, i);
         ASSERT(0 != page_base, "Allocate a new bucket");
 
         ASSERT(ptbl_entry, "ptbl_entry not null");
@@ -269,7 +269,7 @@ int run_tests(struct main_context * main_context) {
         ASSERT((count = database->ptbl_record_tbl[i].page_usage_length) == (count2 = PTBL_CALC_PAGE_USAGE_LENGTH(i, 10)), "Correct page_usage_length");
 
         // Alloc a page in the same bucket (should be same result as first time because bucket will be empty)
-        unsigned char *new_page_base = database_pages_alloc(main_context, database, 0, 1, i);
+        unsigned char *new_page_base = database_ptbl_alloc(main_context, database, 0, 1, i);
         ASSERT(0 != new_page_base, "Allocate new page in empty space");
 
         ASSERT(new_page_base == page_base, "New page base == old page base");
@@ -305,7 +305,7 @@ int run_tests(struct main_context * main_context) {
             // Because we expect new_page_base to change entirely when it needs to remap the
             // pages because of MREMAP_MAYMOVE, we ignore this check (using -1) if j > 5
             unsigned char *expected_new_page_base = (j > 5) ? (unsigned char *)-1 : old_page_base + main_context->system_page_size * ((i <= 8) ? 1 : (1 << (i - 8)));
-            new_page_base = database_pages_alloc(main_context, database, 0, j, i);
+            new_page_base = database_ptbl_alloc(main_context, database, 0, j, i);
 
             ASSERT(new_page_base, "Correct new_page_base");
             ASSERT(expected_new_page_base == (unsigned char *)-1 || new_page_base == expected_new_page_base, "Correct new_page_base");
@@ -318,7 +318,7 @@ int run_tests(struct main_context * main_context) {
         }
     }
 
-    database_pages_free(main_context, database);
+    database_ptbl_free(main_context, database);
 
     unsigned int buffer_length = 16 << TEST_MAX_BUCKET;
     unsigned int pages_count = ((buffer_length > main_context->system_page_size) ? buffer_length / main_context->system_page_size : 1);
@@ -373,7 +373,7 @@ int run_tests(struct main_context * main_context) {
 
     memory_page_free(main_context, buffer, pages_count);
 
-    database_pages_free(main_context, database);
+    database_ptbl_free(main_context, database);
     memory_free(database);
     memory_free(ctx);
 

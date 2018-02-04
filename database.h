@@ -4,6 +4,7 @@
 
 /** @brief Returns the ptbl_record given a corresponding bucket, or 0 if no such record exists yet.
  *  @returns Pointer to a ptbl_record on success, 0 on failure
+ *  @see ptbl_record
  */
 Record_ptbl *
 database_ptbl_search(
@@ -19,9 +20,12 @@ database_ptbl_search(
  * ptbl_record for the corresponding \a bucket of the database_record can be written.
  *
  * @returns Pointer to a region of allocated memory on success, 0 on failure.
+ *
+ * @see database_ptbl_free()
+ * @see ptbl_record
  */
 unsigned char *
-database_pages_alloc(
+database_ptbl_alloc(
     Context_main *ctx_main,        ///<[in]  The main context
     Record_database *rec_database, ///<[in]  The database record
     Record_ptbl **rec_ptbl,        ///<[out] The ptbl_record in \a rec_database for the corresponding \a bucket
@@ -29,9 +33,12 @@ database_pages_alloc(
     int bucket                     ///<[in]  The bucket to allocate in
     );
 
-/** @brief Frees all the structures nested within \a rec_database and it's sub-structures */
+/** @brief Frees all the structures nested within \a rec_database and it's sub-structures
+ *  @see database_ptbl_alloc()
+ *  @see ptbl_record
+ */
 void
-database_pages_free(
+database_ptbl_free(
     Context_main *ctx_main,       //<[in] The main context
     Record_database *rec_database //<[in] The database record
     );
@@ -39,6 +46,8 @@ database_pages_free(
 
 /** @brief Frees a single key \a k in \a rec_database
  *  @returns 1 on success, 0 on failure
+ *  @see database_kv_alloc()
+ *  @see kv_record
  */
 int
 database_kv_free(
@@ -50,6 +59,8 @@ database_kv_free(
 /** @brief returns the key of a newly allocated record in rec_database database_record.kv_record_tbl 
  *         that has been initialized with \a size bytes from \a buffer on success, or 0 on failure.
  *  @returns The key of a new record in rec_database.kv_record_tbl on success, or 0 on failure.
+ *  @see database_kv_free()
+ *  @see kv_record
  */
 unsigned long
 database_kv_alloc(
@@ -71,6 +82,7 @@ database_kv_alloc(
 
 /** @brief Given the \a length of a value in bytes, returns the corresponding bucket for that value
  *  @returns A bucket that contains values of an equivalent size
+ *  @see PTBL_CALC_BUCKET_WORD_SIZE()
  */
 int database_calc_bucket(
     unsigned long length ///<[in] The length of a value

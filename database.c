@@ -64,7 +64,7 @@ void database_ptbl_init(
 //  ptr64 on success
 //  0 on failure
 unsigned char *
-database_pages_alloc(
+database_ptbl_alloc(
     Context_main *ctx_main,
     Record_database *rec_database,
     Record_ptbl **rec_ptbl,
@@ -122,7 +122,7 @@ database_pages_alloc(
         return 0;
     }
 
-    DEBUG_PRINT("\ndatabase_pages_alloc(.., %d, %d);\n", page_count, bucket);
+    DEBUG_PRINT("\ndatabase_ptbl_alloc(.., %d, %d);\n", page_count, bucket);
     DEBUG_PRINT("\tpage_usage_length=%d\n", ptbl->page_usage_length);
     DEBUG_PRINT("\tpage_count=%d\n", PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]));
 
@@ -295,7 +295,7 @@ database_pages_alloc(
     return offset;
 }
 
-void database_pages_free(
+void database_ptbl_free(
     Context_main *ctx_main,
     Record_database *rec_database
 ) {
@@ -396,8 +396,8 @@ database_kv_alloc(
     Record_ptbl *ptbl_entry = database_ptbl_search(ctx_main, rec_database, bucket);
 
     if(!ptbl_entry) {
-        if(!database_pages_alloc(ctx_main, rec_database, &ptbl_entry, 1, bucket)) {
-            DEBUG_PRINT("database_alloc_kv(): Failed call to database_pages_alloc()\n");
+        if(!database_ptbl_alloc(ctx_main, rec_database, &ptbl_entry, 1, bucket)) {
+            DEBUG_PRINT("database_alloc_kv(): Failed call to database_ptbl_alloc()\n");
             return -1;
         }
     }
@@ -430,7 +430,7 @@ database_kv_alloc(
 
     if(free_index == -1) {
         // No free slots exist in any of the pages, so we need to allocate a new page
-        if(!database_pages_alloc(ctx_main, rec_database, &ptbl_entry, 1, bucket)) {
+        if(!database_ptbl_alloc(ctx_main, rec_database, &ptbl_entry, 1, bucket)) {
             return -1;
         }
         free_index = (page_count - 1) * page_usage_bytes * 8;
