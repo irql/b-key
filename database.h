@@ -16,8 +16,8 @@ database_ptbl_search(
 /** @brief Returns a pointer to the newly allocated region, of size main_context.system_page_size *
  *         \a bucket, on success, or 0 on failure.
  * 
- * Optionally, a ptbl_record (\a rec_ptbl) pointer to a *pointer* can be specified, which a pointer to the
- * ptbl_record for the corresponding \a bucket of the database_record can be written.
+ * Optionally, a ptbl_record (\a rec_ptbl) pointer to a *pointer* can be specified, to which a pointer to the
+ * ptbl_record for the corresponding \a bucket of the database_record will be written.
  *
  * @returns Pointer to a region of allocated memory on success, 0 on failure.
  *
@@ -85,5 +85,5 @@ database_kv_alloc(
  *  @see PTBL_CALC_BUCKET_WORD_SIZE()
  */
 int database_calc_bucket(
-    unsigned long length ///<[in] The length of a value
+    unsigned long length ///<[in] The length of a value in bytes
     );

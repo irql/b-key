@@ -148,7 +148,7 @@ typedef struct ptbl_record {
  */
 #define PTBL_CALC_BUCKET_WORD_SIZE(x) (1 << (4 + x))
 
-#define PTBL_KEY_BITMASK (0xE0 << 24) ///< Used for selecting the uppermost three bits
+#define PTBL_KEY_BITMASK (0xE0 << 24) ///< Used for selecting the uppermost three bits of a 32-bit integer
 #define PTBL_KEY_HIGH_BITMASK 0x38 ///< Upper three bits
 #define PTBL_KEY_LOW_BITMASK 0x7 ///< Lower three bits
 

@@ -373,6 +373,12 @@ database_kv_free(
     // ...and decrement kv_record_count
     rec_database->kv_record_count--;
 
+    // If this was the last record in the table, free() it to make sure it gets reinitialized
+    if(rec_database->kv_record_count == 0) {
+        memory_free(rec_database->kv_record_tbl);
+        rec_database->kv_record_tbl = 0;
+    }
+
     return 1;
 }
 
