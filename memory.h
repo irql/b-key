@@ -64,7 +64,7 @@ memory_free(
  * If \a new_amount is greater than \a old_amount, this method will initialize the bytes that are
  * added to 0 by using memset().
  *
- * @returns A pointer to the re-allocated region
+ * @returns A pointer to the re-allocated region on success, or 0 on failure
  */
 unsigned char *
 memory_realloc(
