@@ -523,12 +523,12 @@ database_kv_get(
 }
 
 unsigned char *
-database_kv_get_region(
+database_kv_get_value(
     Context_main *ctx_main,
     Record_database *rec_database,
     unsigned long k
 ) {
-    DEBUG_PRINT("database_kv_get_region(k = %d);\n", k);
+    DEBUG_PRINT("database_kv_get_value(k = %d);\n", k);
 
     Record_kv *rec_kv = database_kv_get(ctx_main, rec_database, k);
     if(!rec_kv) {

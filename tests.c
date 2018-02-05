@@ -351,8 +351,8 @@ int run_tests(struct main_context * main_context) {
             ASSERT(KV_RECORD_GET_SIZE(rec_kv[0]) == length, "Record size equals what was alloc'd"); \
             ASSERT(KV_RECORD_GET_BUCKET(rec_kv[0]) == database_calc_bucket(length), "Record bucket correct");\
             ASSERT(KV_RECORD_GET_FLAGS(rec_kv[0]) == 1, "Record flags correct"); \
-            unsigned char *found_buffer = database_kv_get_region(main_context, database, k); \
-            ASSERT(0 != found_buffer, "database_kv_get_region() succeeds"); \
+            unsigned char *found_buffer = database_kv_get_value(main_context, database, k); \
+            ASSERT(0 != found_buffer, "database_kv_get_value() succeeds"); \
             ASSERT(0 == memcmp(found_buffer, buffer, length), "found_buffer equals buffer"); \
             if(x > 0) { \
                 ASSERT(((j + (x - 1)) / x) == k, "database_kv_alloc() returns correct k"); \

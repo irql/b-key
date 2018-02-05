@@ -39,8 +39,8 @@ database_ptbl_alloc(
  */
 void
 database_ptbl_free(
-    Context_main *ctx_main,       //<[in] main context
-    Record_database *rec_database //<[in] database record
+    Context_main *ctx_main,       ///<[in] main context
+    Record_database *rec_database ///<[in] database record
     );
 
 
@@ -51,9 +51,9 @@ database_ptbl_free(
  */
 int
 database_kv_free(
-    Context_main *ctx_main,
-    Record_database *rec_database,
-    unsigned long k
+    Context_main *ctx_main,        ///<[in] main context
+    Record_database *rec_database, ///<[in] database record
+    unsigned long k                ///<[in] key of the kv_record to free
     );
 
 /** @brief returns the key of a newly allocated record in rec_database database_record.kv_record_tbl 
@@ -96,7 +96,7 @@ database_kv_get(
  *         from buffer.
  */
 int
-database_kv_set(
+database_kv_set_value(
     Context_main *ctx_main,        ///<[in] main context
     Record_database *rec_database, ///<[in] database record
     unsigned long k,               ///<[in] key to return the kv_record for
@@ -105,12 +105,17 @@ database_kv_set(
     );
 
 /** @brief Attempts to resolve the index of the kv_record specified by \a k to the region which the value
- *         component resides at in memory. For internal use \b only.
+ *         component resides at in memory.
+ *
+ *  \b NOTE: Do \b not directly write to the region of memory that is returned by this function. Use
+ *  database_kv_set_value() instead. How would you feel if you were trying to read some data, when some jackass
+ *  comes along and overwrites it, leaving you with partially-written data?
+ *
  *  @returns A pointer to the value corresponding to the kv_record identified by \a k on success, or a 0
  *         on failure
  */
 unsigned char *
-database_kv_get_region(
+database_kv_get_value(
     Context_main *ctx_main,        ///<[in] main context
     Record_database *rec_database, ///<[in] database record
     unsigned long k                ///<[in] key to resolve the value's offset in memory for
