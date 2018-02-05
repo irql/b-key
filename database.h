@@ -60,7 +60,7 @@ database_kv_free(
  *         that has been initialized with \a size bytes from \a buffer on success, or 0 on failure.
  *  @returns The key of a new record in rec_database.kv_record_tbl on success, or 0 on failure.
  *  @see database_kv_free()
- *  @see kv_record
+ *  @see kv_record.bucket_and_index
  */
 unsigned long
 database_kv_alloc(
@@ -79,6 +79,20 @@ database_kv_alloc(
     unsigned char *buffer          ///<[in] The buffer to read \a size bytes into the newly allocated
                                    ///<     value in database_record.kv_record_tbl from
     );
+
+/** @brief Returns a pointer to the kv_record from database_record.kv_record_tbl at key \a k on success,
+ *         or a 0 on failure.
+ *  @returns A pointer to a kv_record on success, or 0 on failure
+ *  @see database_kv_alloc()
+ */
+Record_kv *
+database_kv_get(
+    Context_main *ctx_main,        ///<[in] The main context
+    Record_database *rec_database, ///<[in] The database record
+    unsigned long k                ///<[in] The key to return the kv_record for
+    );
+
+/** @brief Copies \a length bytes from \a buffer into */
 
 /** @brief Given the \a length of a value in bytes, returns the corresponding bucket for that value
  *  @returns A bucket that contains values of an equivalent size

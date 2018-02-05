@@ -270,8 +270,9 @@ typedef struct kv_record {
 
     /** @brief Holds the bits of both \a bucket and \a index
      *
-     * \a index is used to determine the offset into the pages
-     * of \a bucket that this value starts at.
+     * \a index is used to determine the offset into the pages of \a bucket (ptbl_record in a database_record)
+     * that this value starts at. This offset is used to determine the pointer to the actual kv_record
+     * value data both in-memory as well as in the serialized database_record that lives on-disk.
      *
      * value = ptbl_record.m_offset + \a index * PTBL_CALC_BUCKET_WORD_SIZE(bucket)
      *
