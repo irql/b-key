@@ -82,6 +82,9 @@ database_kv_alloc(
 
 /** @brief Returns a pointer to the kv_record from database_record.kv_record_tbl at key \a k on success,
  *         or a 0 on failure.
+ *
+ *  If a kv_record does not yet exist at database_record.kv_record_tbl[k], then this method will fail.
+ *
  *  @returns A pointer to a kv_record on success, or 0 on failure
  *  @see database_kv_alloc()
  */
@@ -90,6 +93,18 @@ database_kv_get(
     Context_main *ctx_main,        ///<[in] The main context
     Record_database *rec_database, ///<[in] The database record
     unsigned long k                ///<[in] The key to return the kv_record for
+    );
+
+/** @brief Attempts to resolve the index of the kv_record specified by \a k to the region which the value
+ *         component resides at in memory
+ *  @returns A pointer to the value corresponding to the kv_record identified by \a k on success, or a 0
+ *         on failure
+ */
+unsigned char *
+database_kv_get_region(
+    Context_main *ctx_main,        ///<[in] The main context
+    Record_database *rec_database, ///<[in] The database record
+    unsigned long k                ///<[in] The key to resolve the value's offset in memory for
     );
 
 /** @brief Copies \a length bytes from \a buffer into */

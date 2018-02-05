@@ -346,6 +346,14 @@ int run_tests(struct main_context * main_context) {
         for(int j = 0; j < max_j; j++) { \
             unsigned long k = database_kv_alloc(main_context, database, 1, length, buffer); \
             ASSERT(-1 != k, "database_kv_alloc() succeeds"); \
+            Record_kv *rec_kv = database_kv_get(main_context, database, k); \
+            ASSERT(0 != rec_kv, "database_kv_get() succeeds"); \
+            ASSERT(KV_RECORD_GET_SIZE(rec_kv[0]) == length, "Record size equals what was alloc'd"); \
+            ASSERT(KV_RECORD_GET_BUCKET(rec_kv[0]) == database_calc_bucket(length), "Record bucket correct");\
+            ASSERT(KV_RECORD_GET_FLAGS(rec_kv[0]) == 1, "Record flags correct"); \
+            unsigned char *found_buffer = database_kv_get_region(main_context, database, k); \
+            ASSERT(0 != found_buffer, "database_kv_get_region() succeeds"); \
+            ASSERT(0 == memcmp(found_buffer, buffer, length), "found_buffer equals buffer"); \
             if(x > 0) { \
                 ASSERT(((j + (x - 1)) / x) == k, "database_kv_alloc() returns correct k"); \
                 if(j % x) { \

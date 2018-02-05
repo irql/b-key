@@ -498,3 +498,56 @@ database_kv_alloc(
 
     return free_kv;
 }
+
+Record_kv *
+database_kv_get(
+    Context_main *ctx_main,
+    Record_database *rec_database,
+    unsigned long k
+) {
+    DEBUG_PRINT("database_kv_get(k = %d);\n", k);
+
+    if(k >= rec_database->kv_record_count) {
+        DEBUG_PRINT("\tERR k is greater than kv_record_count\n");
+        return 0;
+    }
+
+    Record_kv *rec_kv = &rec_database->kv_record_tbl[k];
+
+    if(0 == KV_RECORD_GET_SIZE(rec_kv[0])) {
+        DEBUG_PRINT("\tERR size of record is 0\n");
+        return 0;
+    }
+
+    return rec_kv;
+}
+
+unsigned char *
+database_kv_get_region(
+    Context_main *ctx_main,
+    Record_database *rec_database,
+    unsigned long k
+) {
+    DEBUG_PRINT("database_kv_get_region(k = %d);\n", k);
+
+    Record_kv *rec_kv = database_kv_get(ctx_main, rec_database, k);
+    if(!rec_kv) {
+        DEBUG_PRINT("\tERR failed to get kv_record\n");
+        return 0;
+    }
+
+    int bucket = KV_RECORD_GET_BUCKET(rec_kv[0]);
+    Record_ptbl *rec_ptbl = database_ptbl_get(ctx_main, rec_database, bucket);
+    if(!rec_ptbl) {
+        DEBUG_PRINT("\tERR rec_database is corrupt- found orphaned kv_record in non-existant bucket");
+        return 0;
+    }
+
+    unsigned long index = KV_RECORD_GET_INDEX(rec_kv[0]);
+    unsigned long word_size = PTBL_CALC_BUCKET_WORD_SIZE(bucket);
+    unsigned char *region = rec_ptbl->m_offset + KV_RECORD_GET_INDEX(rec_kv[0]) * PTBL_CALC_BUCKET_WORD_SIZE(bucket);
+
+    DEBUG_PRINT("\treturns %p + %d * %d = %p\n", rec_ptbl->m_offset, index, word_size, region);
+
+    return region;
+}
