@@ -12,7 +12,7 @@
 #endif
 
 Record_ptbl *
-database_ptbl_search(
+database_ptbl_get(
     Context_main *ctx_main,
     Record_database *rec_database,
     int bucket
@@ -89,7 +89,7 @@ database_ptbl_alloc(
     // Database ptbl_record_tbl exists
 
     Record_ptbl *ptbl =
-        database_ptbl_search(ctx_main, rec_database, bucket);
+        database_ptbl_get(ctx_main, rec_database, bucket);
 
     if(!ptbl) {
         // Create new ptbl record to init bucket
@@ -350,7 +350,7 @@ database_kv_free(
         return 1;
     }
 
-    Record_ptbl *ptbl_entry = database_ptbl_search(ctx_main, rec_database, KV_RECORD_GET_BUCKET(kv_rec[0]));
+    Record_ptbl *ptbl_entry = database_ptbl_get(ctx_main, rec_database, KV_RECORD_GET_BUCKET(kv_rec[0]));
     if(!ptbl_entry) {
         DEBUG_PRINT("database_kv_free(k = %d) No ptbl entry found for bucket - corrupt kv record\n", k);
         return 0;
@@ -399,7 +399,7 @@ database_kv_alloc(
     unsigned char bucket = database_calc_bucket(size);
     DEBUG_PRINT("\tbucket = %d\n", bucket);
 
-    Record_ptbl *ptbl_entry = database_ptbl_search(ctx_main, rec_database, bucket);
+    Record_ptbl *ptbl_entry = database_ptbl_get(ctx_main, rec_database, bucket);
 
     if(!ptbl_entry) {
         if(!database_ptbl_alloc(ctx_main, rec_database, &ptbl_entry, 1, bucket)) {

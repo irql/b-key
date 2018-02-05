@@ -160,10 +160,10 @@ int run_tests(struct main_context * main_context) {
     PTBL_RECORD_SET_KEY(database->ptbl_record_tbl[0], 3);
     PTBL_RECORD_SET_PAGE_COUNT(database->ptbl_record_tbl[0], 1);
 
-    Record_ptbl *ptbl = database_ptbl_search(main_context, database, 3);
-    ASSERT(ptbl == database->ptbl_record_tbl, "database_ptbl_search() finds record");
+    Record_ptbl *ptbl = database_ptbl_get(main_context, database, 3);
+    ASSERT(ptbl == database->ptbl_record_tbl, "database_ptbl_get() finds record");
 
-    ASSERT(0 == database_ptbl_search(main_context, database, -1), "database_ptbl_search() doesn't find record");
+    ASSERT(0 == database_ptbl_get(main_context, database, -1), "database_ptbl_get() doesn't find record");
 
     /* The following tests to be run on every bucket
      *

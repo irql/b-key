@@ -2,12 +2,12 @@
  *  @brief Method definitions for working with the database and associated records
  */
 
-/** @brief Returns the ptbl_record given a corresponding bucket, or 0 if no such record exists yet.
+/** @brief Returns the ptbl_record for the corresponding \a bucket, or 0 if no such record exists yet.
  *  @returns Pointer to a ptbl_record on success, 0 on failure
  *  @see ptbl_record
  */
 Record_ptbl *
-database_ptbl_search(
+database_ptbl_get(
     Context_main *ctx_main,        ///< [in] The main context
     Record_database *rec_database, ///< [in] The database record
     int bucket                     ///< [in] Bucket number
