@@ -8,8 +8,8 @@
  */
 Record_ptbl *
 database_ptbl_get(
-    Context_main *ctx_main,        ///< [in] The main context
-    Record_database *rec_database, ///< [in] The database record
+    Context_main *ctx_main,        ///< [in] main context
+    Record_database *rec_database, ///< [in] database record
     int bucket                     ///< [in] Bucket number
     );
 
@@ -26,11 +26,11 @@ database_ptbl_get(
  */
 unsigned char *
 database_ptbl_alloc(
-    Context_main *ctx_main,        ///<[in]  The main context
-    Record_database *rec_database, ///<[in]  The database record
-    Record_ptbl **rec_ptbl,        ///<[out] The ptbl_record in \a rec_database for the corresponding \a bucket
-    int page_count,                ///<[in]  The number of pages to allocate
-    int bucket                     ///<[in]  The bucket to allocate in
+    Context_main *ctx_main,        ///<[in]  main context
+    Record_database *rec_database, ///<[in]  database record
+    Record_ptbl **rec_ptbl,        ///<[out] ptbl_record in \a rec_database for the corresponding \a bucket
+    int page_count,                ///<[in]  number of pages to allocate
+    int bucket                     ///<[in]  bucket to allocate in
     );
 
 /** @brief Frees all the structures nested within \a rec_database and it's sub-structures
@@ -39,8 +39,8 @@ database_ptbl_alloc(
  */
 void
 database_ptbl_free(
-    Context_main *ctx_main,       //<[in] The main context
-    Record_database *rec_database //<[in] The database record
+    Context_main *ctx_main,       //<[in] main context
+    Record_database *rec_database //<[in] database record
     );
 
 
@@ -64,55 +64,62 @@ database_kv_free(
  */
 unsigned long
 database_kv_alloc(
-    Context_main *ctx_main,        ///<[in] The main context
-    Record_database *rec_database, ///<[in] The database record
+    Context_main *ctx_main,        ///<[in] main context
+    Record_database *rec_database, ///<[in] database record
 
     unsigned char flags,           ///<[in] Flags to set kv_record.flags_and_size
                                    ///<     @see KV_RECORD_GET_FLAGS()
                                    ///<     @see KV_RECORD_SET_FLAGS()
 
-    unsigned long size,            ///<[in] The number of bytes to read from buffer, in addition to the
+    unsigned long size,            ///<[in] number of bytes to read from buffer, in addition to the
                                    ///<     size to set in kv_record.flags_and_size
                                    ///<     @see KV_RECORD_GET_SIZE()
                                    ///<     @see KV_RECORD_SET_SIZE()
 
-    unsigned char *buffer          ///<[in] The buffer to read \a size bytes into the newly allocated
+    unsigned char *buffer          ///<[in] buffer to read \a size bytes into the newly allocated
                                    ///<     value in database_record.kv_record_tbl from
     );
 
-/** @brief Returns a pointer to the kv_record from database_record.kv_record_tbl at key \a k on success,
- *         or a 0 on failure.
- *
- *  If a kv_record does not yet exist at database_record.kv_record_tbl[k], then this method will fail.
- *
+/** @brief Given an existing key \a k, returns a pointer to the kv_record from database_record.kv_record_tbl
+ *         at key \a k on success, or a 0 on failure.
  *  @returns A pointer to a kv_record on success, or 0 on failure
  *  @see database_kv_alloc()
  */
 Record_kv *
 database_kv_get(
-    Context_main *ctx_main,        ///<[in] The main context
-    Record_database *rec_database, ///<[in] The database record
-    unsigned long k                ///<[in] The key to return the kv_record for
+    Context_main *ctx_main,        ///<[in] main context
+    Record_database *rec_database, ///<[in] database record
+    unsigned long k                ///<[in] key to return the kv_record for
+    );
+
+/** @brief Given an existing key \a k, sets the value of said key to a value of \a length bytes taken
+ *         from buffer.
+ */
+int
+database_kv_set(
+    Context_main *ctx_main,        ///<[in] main context
+    Record_database *rec_database, ///<[in] database record
+    unsigned long k,               ///<[in] key to return the kv_record for
+    unsigned long length,          ///<[in] length of buffer in bytes
+    unsigned char *buffer          ///<[in] New data to set the value to
     );
 
 /** @brief Attempts to resolve the index of the kv_record specified by \a k to the region which the value
- *         component resides at in memory
+ *         component resides at in memory. For internal use \b only.
  *  @returns A pointer to the value corresponding to the kv_record identified by \a k on success, or a 0
  *         on failure
  */
 unsigned char *
 database_kv_get_region(
-    Context_main *ctx_main,        ///<[in] The main context
-    Record_database *rec_database, ///<[in] The database record
-    unsigned long k                ///<[in] The key to resolve the value's offset in memory for
+    Context_main *ctx_main,        ///<[in] main context
+    Record_database *rec_database, ///<[in] database record
+    unsigned long k                ///<[in] key to resolve the value's offset in memory for
     );
-
-/** @brief Copies \a length bytes from \a buffer into */
 
 /** @brief Given the \a length of a value in bytes, returns the corresponding bucket for that value
  *  @returns A bucket that contains values of an equivalent size
  *  @see PTBL_CALC_BUCKET_WORD_SIZE()
  */
 int database_calc_bucket(
-    unsigned long length ///<[in] The length of a value in bytes
+    unsigned long length ///<[in] length of a value in bytes
     );
