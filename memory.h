@@ -45,7 +45,7 @@ memory_page_free(
     int page_count                     ///<[in] The number of pages that were allocated to the region
     );
 
-/** @brief Allocate using stdlib
+/** @brief   Allocate using stdlib
  *  @returns A pointer to the region on success, or 0 on failure
  */
 unsigned char *
