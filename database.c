@@ -551,3 +551,13 @@ database_kv_get_value(
 
     return region;
 }
+
+int
+database_kv_set_value(
+    Context_main *ctx_main,
+    Record_database *rec_database,
+    unsigned long k,
+    unsigned long length,
+    unsigned char *buffer
+) {
+}

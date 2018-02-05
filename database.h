@@ -91,9 +91,10 @@ database_kv_get(
     unsigned long k                ///<[in] key to return the kv_record for
     );
 
-/** @brief Given an existing key \a k, sets the value of said key to a value of \a length bytes taken
- *         from buffer.
- *  @see   database_kv_get_value()
+/** @brief   Given an existing key \a k, sets the value of said key to a value of \a length bytes taken
+ *           from buffer.
+ *  @returns 1 on success, 0 on failure
+ *  @see     database_kv_get_value()
  */
 int
 database_kv_set_value(
