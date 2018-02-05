@@ -1,10 +1,10 @@
-/** @file database.h
+/** @file  database.h
  *  @brief Method definitions for working with the database and associated records
  */
 
-/** @brief Returns the ptbl_record for the corresponding \a bucket, or 0 if no such record exists yet.
+/** @brief   Returns the ptbl_record for the corresponding \a bucket, or 0 if no such record exists yet.
  *  @returns Pointer to a ptbl_record on success, 0 on failure
- *  @see ptbl_record
+ *  @see     ptbl_record
  */
 Record_ptbl *
 database_ptbl_get(
@@ -20,9 +20,8 @@ database_ptbl_get(
  * ptbl_record for the corresponding \a bucket of the database_record will be written.
  *
  * @returns Pointer to a region of allocated memory on success, 0 on failure.
- *
- * @see database_ptbl_free()
- * @see ptbl_record
+ * @see     database_ptbl_free()
+ * @see     ptbl_record
  */
 unsigned char *
 database_ptbl_alloc(
@@ -34,8 +33,8 @@ database_ptbl_alloc(
     );
 
 /** @brief Frees all the structures nested within \a rec_database and it's sub-structures
- *  @see database_ptbl_alloc()
- *  @see ptbl_record
+ *  @see   database_ptbl_alloc()
+ *  @see   ptbl_record
  */
 void
 database_ptbl_free(
@@ -44,10 +43,10 @@ database_ptbl_free(
     );
 
 
-/** @brief Frees a single key \a k in \a rec_database
+/** @brief   Frees a single key \a k in \a rec_database
  *  @returns 1 on success, 0 on failure
- *  @see database_kv_alloc()
- *  @see kv_record
+ *  @see     database_kv_alloc()
+ *  @see     kv_record
  */
 int
 database_kv_free(
@@ -56,11 +55,11 @@ database_kv_free(
     unsigned long k                ///<[in] key of the kv_record to free
     );
 
-/** @brief returns the key of a newly allocated record in rec_database database_record.kv_record_tbl 
- *         that has been initialized with \a size bytes from \a buffer on success, or 0 on failure.
+/** @brief   returns the key of a newly allocated record in rec_database database_record.kv_record_tbl 
+ *           that has been initialized with \a size bytes from \a buffer on success, or 0 on failure.
  *  @returns The key of a new record in rec_database.kv_record_tbl on success, or 0 on failure.
- *  @see database_kv_free()
- *  @see kv_record.bucket_and_index
+ *  @see     database_kv_free()
+ *  @see     kv_record.bucket_and_index
  */
 unsigned long
 database_kv_alloc(
@@ -80,10 +79,10 @@ database_kv_alloc(
                                    ///<     value in database_record.kv_record_tbl from
     );
 
-/** @brief Given an existing key \a k, returns a pointer to the kv_record from database_record.kv_record_tbl
- *         at key \a k on success, or a 0 on failure.
+/** @brief   Given an existing key \a k, returns a pointer to the kv_record from database_record.kv_record_tbl
+ *           at key \a k on success, or a 0 on failure.
  *  @returns A pointer to a kv_record on success, or 0 on failure
- *  @see database_kv_alloc()
+ *  @see     database_kv_alloc()
  */
 Record_kv *
 database_kv_get(
@@ -94,6 +93,7 @@ database_kv_get(
 
 /** @brief Given an existing key \a k, sets the value of said key to a value of \a length bytes taken
  *         from buffer.
+ *  @see   database_kv_get_value()
  */
 int
 database_kv_set_value(
@@ -121,9 +121,9 @@ database_kv_get_value(
     unsigned long k                ///<[in] key to resolve the value's offset in memory for
     );
 
-/** @brief Given the \a length of a value in bytes, returns the corresponding bucket for that value
+/** @brief   Given the \a length of a value in bytes, returns the corresponding bucket for that value
  *  @returns A bucket that contains values of an equivalent size
- *  @see PTBL_CALC_BUCKET_WORD_SIZE()
+ *  @see     PTBL_CALC_BUCKET_WORD_SIZE()
  */
 int database_calc_bucket(
     unsigned long length ///<[in] length of a value in bytes
