@@ -251,6 +251,11 @@ int run_tests(struct main_context * main_context) {
 	 * 63     | 147EB
      */
     database_ptbl_free(main_context, database);
+    ASSERT(database->ptbl_record_count == 0, "ptbl_record_count == 0");
+    ASSERT(database->ptbl_record_tbl == 0, "ptbl_record_tbl == 0");
+    ASSERT(database->kv_record_count == 0, "kv_record_count == 0");
+    ASSERT(database->kv_record_tbl == 0, "kv_record_tbl == 0");
+
     for(i = 0; i <= TEST_MAX_BUCKET; i++) {
         Record_ptbl *ptbl_entry;
         // Alloc a new bucket
@@ -342,40 +347,49 @@ int run_tests(struct main_context * main_context) {
         // for varying buffer (value) lengths
         ASSERT(bucket == i, "database_calc_bucket()");
 
-#define TEST_ALLOC_KV(x) \
-        for(int j = 0; j < max_j; j++) { \
-            unsigned long k = database_kv_alloc(main_context, database, 1, length, buffer); \
-            ASSERT(-1 != k, "database_kv_alloc() succeeds"); \
-            Record_kv *rec_kv = database_kv_get(main_context, database, k); \
-            ASSERT(0 != rec_kv, "database_kv_get() succeeds"); \
-            ASSERT(KV_RECORD_GET_SIZE(rec_kv[0]) == length, "Record size equals what was alloc'd"); \
-            ASSERT(KV_RECORD_GET_BUCKET(rec_kv[0]) == database_calc_bucket(length), "Record bucket correct");\
-            ASSERT(KV_RECORD_GET_FLAGS(rec_kv[0]) == 1, "Record flags correct"); \
-            unsigned char *found_buffer = database_kv_get_value(main_context, database, k); \
-            ASSERT(0 != found_buffer, "database_kv_get_value() succeeds"); \
-            ASSERT(0 == memcmp(found_buffer, buffer, length), "found_buffer equals buffer"); \
-            if(x > 0) { \
-                ASSERT(((j + (x - 1)) / x) == k, "database_kv_alloc() returns correct k"); \
-                if(j % x) { \
-                    ASSERT(database_kv_free(main_context, database, k), "database_kv_free()"); \
-                } \
-            } \
-            else { \
-                ASSERT(j == k, "database_kv_alloc() Returns correct k"); \
-            } \
-        }\
-        for(int k = database->kv_record_count - 1; k >= 0; k--) { \
-            ASSERT(database_kv_free(main_context, database, k), "database_kv_free()"); \
-        }
+        for(int l = 0; l < 10; l++) {
+            if(l == 1) continue;
+            for(int j = 0; j < max_j; j++) {
+                unsigned long k = database_kv_alloc(main_context, database, 1, length, buffer);
+                ASSERT(-1 != k, "database_kv_alloc() succeeds");
 
-        /* Phase 1: Contiguous allocation and contiguous free */
+                Record_kv *rec_kv = database_kv_get(main_context, database, k);
+                ASSERT(0 != rec_kv, "database_kv_get() succeeds");
+                ASSERT(KV_RECORD_GET_SIZE(rec_kv[0]) == length, "Record size equals what was alloc'd");
+                ASSERT(KV_RECORD_GET_BUCKET(rec_kv[0]) == database_calc_bucket(length), "Record bucket correct");
+                ASSERT(KV_RECORD_GET_FLAGS(rec_kv[0]) == 1, "Record flags correct");
 
-        TEST_ALLOC_KV(0);
+                unsigned char *found_buffer = database_kv_get_value(main_context, database, 0, 0, k);
+                ASSERT(0 != found_buffer, "database_kv_get_value() succeeds");
+                ASSERT(0 == memcmp(found_buffer, buffer, length), "found_buffer equals buffer");
 
-        /* Phase 2: Every l'th KV free'd */
+                // Only do this test once per bucket since we want it to be quick (but still validate the functionality)
+                if(j == max_j / 2) {
+                    for(int b = 0; b < TEST_MAX_BUCKET; b++) {
+                        unsigned long new_length = 16 << b;
+                        unsigned char bucket = database_calc_bucket(length);
 
-        for(int l = 2; l < 10; l++) {
-            TEST_ALLOC_KV(l);
+                        ASSERT(database_kv_set_value(main_context, database, k, new_length, buffer), "database_kv_set_value() succeeds");
+                        found_buffer = database_kv_get_value(main_context, database, 0, 0, k);
+                        ASSERT(0 != found_buffer, "database_kv_get_value() succeeds");
+                        ASSERT(0 == memcmp(found_buffer, buffer, new_length), "found_buffer equals buffer");
+                    }
+                }
+
+                if(l > 0) {
+                    ASSERT(((j + (l - 1)) / l) == k, "database_kv_alloc() returns correct k");
+                    if(j % l) {
+                        ASSERT(database_kv_free(main_context, database, k), "database_kv_free()");
+                    }
+                }
+                else {
+                    ASSERT(j == k, "database_kv_alloc() Returns correct k");
+                }
+            }
+            for(int k = database->kv_record_count - 1; k >= 0; k--) {
+                ASSERT(database_kv_free(main_context, database, k), "database_kv_free()");
+            }
+
 
             //TODO: Create test to verify ptbl_entry->page_usage
         }

@@ -360,18 +360,19 @@ database_kv_free(
     unsigned long bucket_wsz = PTBL_CALC_BUCKET_WORD_SIZE(bucket);
     unsigned long kv_index = KV_RECORD_GET_INDEX(kv_rec[0]);
 
+    // Set record size to 0 to disable lookup
+    KV_RECORD_SET_SIZE(kv_rec[0], 0);
+
     // Zero-out value
     unsigned char *region = (unsigned char *)(ptbl_entry->m_offset + kv_index * bucket_wsz);
     memset(region, 0, bucket_wsz);
 
     // Mark value as freed in page_usage
-    ptbl_entry->page_usage[kv_index / 8] &= ~((unsigned char)1 << (kv_index % 8));
+    PTBL_RECORD_PAGE_USAGE_FREE(ptbl_entry, kv_index);
 
-    // FINALLY, set record size to 0
-    KV_RECORD_SET_SIZE(kv_rec[0], 0);
-
-    // ...and decrement kv_record_count
-    rec_database->kv_record_count--;
+    // Only decrement kv_record_count if the kv_record being free()d is the one at the very end of rec_database->kv_record_tbl
+    // This is because we don't want to lose a record at the end of kv_record_tbl if a record is free()d in the middle.
+    if(k == rec_database->kv_record_count - 1) rec_database->kv_record_count--;
 
     // If this was the last record in the table, free() it to make sure it gets reinitialized
     if(rec_database->kv_record_count == 0) {
@@ -382,47 +383,63 @@ database_kv_free(
     return 1;
 }
 
-unsigned long
-database_kv_alloc(
+int
+database_value_free(
     Context_main *ctx_main,
     Record_database *rec_database,
-    unsigned char flags,
-    unsigned long size,
-    unsigned char *buffer
+    char bucket,
+    unsigned long index
 ) {
-    DEBUG_PRINT("database_alloc_kv(flags = %02x, size = %d, buffer = %p);\n", flags, size, buffer);
-
-    // Allocate based on page-table mappings
-    // If no page table exists for records of
-    // a given size, create one.
-
-    unsigned char bucket = database_calc_bucket(size);
-    DEBUG_PRINT("\tbucket = %d\n", bucket);
-
     Record_ptbl *ptbl_entry = database_ptbl_get(ctx_main, rec_database, bucket);
-
     if(!ptbl_entry) {
         if(!database_ptbl_alloc(ctx_main, rec_database, &ptbl_entry, 1, bucket)) {
-            DEBUG_PRINT("database_alloc_kv(): Failed call to database_ptbl_alloc()\n");
+            DEBUG_PRINT("database_value_free(): Failed call to database_ptbl_alloc()\n");
+            return 0;
+        }
+    }
+    if(!ptbl_entry->page_usage || ptbl_entry->page_usage_length != PTBL_CALC_PAGE_USAGE_LENGTH(bucket, PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]))) {
+        DEBUG_PRINT("database_value_free(): page_usage_length does not match page count\n");
+        return 0;
+    }
+
+    PTBL_RECORD_PAGE_USAGE_FREE(ptbl_entry, index);
+
+    return 1;
+}
+
+unsigned long
+_database_value_alloc(
+    Context_main *ctx_main,
+    Record_database *rec_database,
+    Record_ptbl **ptbl_out,
+    char bucket
+) {
+    Record_ptbl *ptbl_entry = database_ptbl_get(ctx_main, rec_database, bucket);
+    if(!ptbl_entry) {
+        if(!database_ptbl_alloc(ctx_main, rec_database, &ptbl_entry, 1, bucket)) {
+            DEBUG_PRINT("_database_value_alloc(): Failed call to database_ptbl_alloc()\n");
             return -1;
         }
     }
-
     if(!ptbl_entry->page_usage || ptbl_entry->page_usage_length != PTBL_CALC_PAGE_USAGE_LENGTH(bucket, PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]))) {
-        DEBUG_PRINT("database_alloc_kv(): page_usage_length does not match page count\n");
+        DEBUG_PRINT("_database_value_alloc(): page_usage_length does not match page count\n");
         return -1;
     }
 
-    // Identify the first unused "slot" that can hold a value of the appropriate size
-    int free_index = -1,
-        page_count = PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]),
+    if(ptbl_out) ptbl_out[0] = ptbl_entry;
+
+    unsigned long free_index = -1;
+
+    unsigned int page_count = PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]),
         page_usage_bytes = PTBL_CALC_PAGE_USAGE_BYTES(bucket),
         page_usage_bits = PTBL_CALC_PAGE_USAGE_BITS(bucket);
 
+    // Identify the first unused "slot" that can hold a value of the appropriate size
     for(int i = 0; i < ptbl_entry->page_usage_length && free_index == -1; i++) {
         unsigned char bits = ptbl_entry->page_usage[i];
         int max = 8;
         if(page_usage_bits < 8) {
+            // Ensure that we don't try to read more bits than there are total
             if(!(max = ((page_count * page_usage_bits) % 8))) {
                 max = 8;
             }
@@ -443,9 +460,38 @@ database_kv_alloc(
         ptbl_entry->page_usage[free_index / 8] |= 1;
     }
 
-    unsigned long value_offset = free_index * PTBL_CALC_BUCKET_WORD_SIZE(bucket);
+    return free_index;
+}
 
-    DEBUG_PRINT("database_alloc_kv() %d(%d) + %p = %p\n", free_index, value_offset, ptbl_entry->m_offset, ptbl_entry->m_offset + value_offset);
+unsigned long
+database_kv_alloc(
+    Context_main *ctx_main,
+    Record_database *rec_database,
+    unsigned char flags,
+    unsigned long size,
+    unsigned char *buffer
+) {
+    DEBUG_PRINT("database_alloc_kv(flags = %02x, size = %d, buffer = %p);\n", flags, size, buffer);
+
+    // Allocate based on page-table mappings
+    // If no page table exists for records of
+    // a given size, create one.
+
+    unsigned char bucket = database_calc_bucket(size);
+    DEBUG_PRINT("\tbucket = %d\n", bucket);
+
+    Record_ptbl *ptbl_entry = 0;
+    unsigned long free_index = _database_value_alloc(ctx_main, rec_database, &ptbl_entry, bucket);
+    if(free_index == -1) {
+        DEBUG_PRINT("\tERR failed to allocate new value in bucket %d\n", bucket);
+        return -1;
+    }
+    if(ptbl_entry == 0) {
+        DEBUG_PRINT("\tERR ptbl_entry is null\n");
+        return -1;
+    }
+
+    unsigned long value_offset = free_index * PTBL_CALC_BUCKET_WORD_SIZE(bucket);
 
     // We need to find a free spot in the kv_record table and occupy it
     unsigned long free_kv = 0;
@@ -526,6 +572,8 @@ unsigned char *
 database_kv_get_value(
     Context_main *ctx_main,
     Record_database *rec_database,
+    Record_ptbl **ptbl_out,
+    Record_kv **kv_out,
     unsigned long k
 ) {
     DEBUG_PRINT("database_kv_get_value(k = %d);\n", k);
@@ -536,6 +584,8 @@ database_kv_get_value(
         return 0;
     }
 
+    if(kv_out) kv_out[0] = rec_kv;
+
     int bucket = KV_RECORD_GET_BUCKET(rec_kv[0]);
     Record_ptbl *rec_ptbl = database_ptbl_get(ctx_main, rec_database, bucket);
     if(!rec_ptbl) {
@@ -543,13 +593,9 @@ database_kv_get_value(
         return 0;
     }
 
-    unsigned long index = KV_RECORD_GET_INDEX(rec_kv[0]);
-    unsigned long word_size = PTBL_CALC_BUCKET_WORD_SIZE(bucket);
-    unsigned char *region = rec_ptbl->m_offset + KV_RECORD_GET_INDEX(rec_kv[0]) * PTBL_CALC_BUCKET_WORD_SIZE(bucket);
+    if(ptbl_out) ptbl_out[0] = rec_ptbl;
 
-    DEBUG_PRINT("\treturns %p + %d * %d = %p\n", rec_ptbl->m_offset, index, word_size, region);
-
-    return region;
+    return PTBL_RECORD_VALUE_PTR(rec_ptbl, rec_kv);
 }
 
 int
@@ -560,4 +606,50 @@ database_kv_set_value(
     unsigned long length,
     unsigned char *buffer
 ) {
+    DEBUG_PRINT("database_kv_set_value(k = %d, length = %d, buffer = %p);\n", k, length, buffer);
+
+    Record_ptbl *old_ptbl = 0;
+    Record_kv *kv_rec = 0;
+    unsigned char *region = database_kv_get_value(ctx_main, rec_database, &old_ptbl, &kv_rec, k);
+    if(!region) {
+        DEBUG_PRINT("\tERR failed to get region\n");
+        return 0;
+    }
+    if(!old_ptbl) {
+        DEBUG_PRINT("\tERR failed to get ptbl_record\n");
+        return 0;
+    }
+    if(!kv_rec) {
+        DEBUG_PRINT("\tERR failed to get kv_record\n");
+        return 0;
+    }
+
+    /* We allocate a new value, then swap the old value that the kv_record has with the new one */
+
+    Record_ptbl *new_ptbl = 0;
+    char bucket = database_calc_bucket(length);
+    unsigned long new_index = _database_value_alloc(ctx_main, rec_database, &new_ptbl, bucket);
+    if(new_index == -1) {
+        DEBUG_PRINT("\tERR failed to realloc value\n");
+        return 0;
+    }
+
+    // "Disable" kv_rec by setting size to 0
+    KV_RECORD_SET_SIZE(kv_rec[0], 0);
+
+    // Free the value in the bucket
+    PTBL_RECORD_PAGE_USAGE_FREE(old_ptbl, KV_RECORD_GET_INDEX(kv_rec[0]));
+
+    // Set a new bucket/index for kv_rec
+    KV_RECORD_SET_BUCKET(kv_rec[0], bucket);
+    KV_RECORD_SET_INDEX(kv_rec[0], new_index);
+
+    // Copy over buffer to the new value
+    unsigned char *new_region = PTBL_RECORD_VALUE_PTR(new_ptbl, kv_rec);
+    memcpy(new_region, buffer, length);
+
+    // "Enable" record by setting size to new_index value length
+    KV_RECORD_SET_SIZE(kv_rec[0], length);
+
+    return 1;
 }

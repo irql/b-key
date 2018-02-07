@@ -202,6 +202,20 @@ typedef struct ptbl_record {
     x.key_high_and_page_count |= ((y & PTBL_KEY_HIGH_BITMASK) << PTBL_KEY_HIGH_SHIFT); \
     x.key_low_and_offset |= ((y & PTBL_KEY_LOW_BITMASK) << PTBL_KEY_LOW_SHIFT);
 
+/** @brief Mark page number \a y as freed in ptbl_record \a x
+ *  @param x ptbl_record (\b is a pointer)
+ *  @param y page number (kv_record.bucket_and_index)
+ */
+#define PTBL_RECORD_PAGE_USAGE_FREE(x,y) \
+    x->page_usage[y / 8] &= ~((unsigned char)1 << (y % 8));
+
+/** @brief Calculate the address in memory that a given kv_record value resides at
+ *  @param x The ptbl_record for the bucket that kv_record \a y lives within (\b is a pointer)
+ *  @param y The kv_record (\b is a pointer)
+ */
+#define PTBL_RECORD_VALUE_PTR(x,y) \
+    (unsigned char *)(x->m_offset + KV_RECORD_GET_INDEX(y[0]) * PTBL_CALC_BUCKET_WORD_SIZE(KV_RECORD_GET_BUCKET(y[0])))
+
 /** @brief Holds information for a key/value pair, including the bucket the value resides in, it's \a index (offset) into the
  *         bucket (ptbl_record.m_offset + \a index), in addition to the size of the value in bytes
  *

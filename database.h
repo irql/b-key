@@ -27,7 +27,7 @@ unsigned char *
 database_ptbl_alloc(
     Context_main *ctx_main,        ///<[in]  main context
     Record_database *rec_database, ///<[in]  database record
-    Record_ptbl **rec_ptbl,        ///<[out] ptbl_record in \a rec_database for the corresponding \a bucket
+    Record_ptbl **rec_ptbl,        ///<[out] Where a pointer to the found ptbl_record should be written
     int page_count,                ///<[in]  number of pages to allocate
     int bucket                     ///<[in]  bucket to allocate in
     );
@@ -57,7 +57,7 @@ database_kv_free(
 
 /** @brief   returns the key of a newly allocated record in rec_database database_record.kv_record_tbl 
  *           that has been initialized with \a size bytes from \a buffer on success, or 0 on failure.
- *  @returns The key of a new record in rec_database.kv_record_tbl on success, or 0 on failure.
+ *  @returns The key of a new record in rec_database.kv_record_tbl on success, or -1 on failure.
  *  @see     database_kv_free()
  *  @see     kv_record.bucket_and_index
  */
@@ -77,6 +77,24 @@ database_kv_alloc(
 
     unsigned char *buffer          ///<[in] buffer to read \a size bytes into the newly allocated
                                    ///<     value in database_record.kv_record_tbl from
+    );
+
+/** @brief Internal method used to allocate a single value within a \a bucket
+ *
+ *  This is an \b internal method, meaning it should \b not be used by any methods outside of database.h
+ *
+ *  Optionally, a ptbl_out (\a ptbl_record) pointer to a *pointer* can be specified, to which a pointer to the
+ *  ptbl_record for the corresponding \a bucket of the database_record.ptbl_record_tbl will be written.
+ *
+ *  @returns The index into the \a bucket (ptbl_record) where the value is found on success, or a -1 on failure
+ *  @see kv_record.bucket_and_index
+ */
+unsigned long
+_database_value_alloc(
+    Context_main *ctx_main,        ///<[in]  main context
+    Record_database *rec_database, ///<[in]  database record
+    Record_ptbl **ptbl_out,        ///<[out] Where a pointer to the found ptbl_record should be written
+    char bucket                    ///<[in]  bucket to allocate in
     );
 
 /** @brief   Given an existing key \a k, returns a pointer to the kv_record from database_record.kv_record_tbl
@@ -108,6 +126,10 @@ database_kv_set_value(
 /** @brief Attempts to resolve the index of the kv_record specified by \a k to the region which the value
  *         component resides at in memory.
  *
+ *  Optionally, a kv_out (\a kv_record) pointer to a *pointer* can be specified, to which a pointer to the
+ *  kv_record for the corresponding \a k of the database_record.kv_record_tbl will be written. The same thing
+ *  applies to the \a ptbl_out parameter for the found ptbl_record.
+ *
  *  \b NOTE: Do \b not directly write to the region of memory that is returned by this function. Use
  *  database_kv_set_value() instead. How would you feel if you were trying to read some data, when some jackass
  *  comes along and overwrites it, leaving you with partially-written data?
@@ -117,9 +139,11 @@ database_kv_set_value(
  */
 unsigned char *
 database_kv_get_value(
-    Context_main *ctx_main,        ///<[in] main context
-    Record_database *rec_database, ///<[in] database record
-    unsigned long k                ///<[in] key to resolve the value's offset in memory for
+    Context_main *ctx_main,        ///<[in]  main context
+    Record_database *rec_database, ///<[in]  database record
+    Record_ptbl **ptbl_out,        ///<[out] Where a pointer to the found ptbl_record should be written
+    Record_kv **kv_out,            ///<[out] Where a pointer to the found kv_record should be written
+    unsigned long k                ///<[in]  key to resolve the value's offset in memory for
     );
 
 /** @brief   Given the \a length of a value in bytes, returns the corresponding bucket for that value
