@@ -32,18 +32,15 @@ void database_ptbl_init(
     int page_count,
     int bucket
 ) {
-    ptbl_entry->page_usage_length =
-        PTBL_CALC_PAGE_USAGE_LENGTH(bucket, page_count);
-
-    // Leave page_usage bits zero, they will be set/unset
-    // upon the storage or deletion of individual k/v pairs
-    ptbl_entry->page_usage =
-        memory_alloc(sizeof(unsigned char) * ptbl_entry->page_usage_length);
-
-    PTBL_RECORD_SET_KEY(ptbl_entry[0], bucket);
-
     ptbl_entry->m_offset = memory_page_alloc(ctx_main, ((bucket <= 8) ? page_count : (page_count << (bucket - 8))));
+
+    ptbl_entry->page_usage_length = PTBL_CALC_PAGE_USAGE_LENGTH(bucket, page_count);
+
+    // Leave page_usage bits zero, they will be set/unset upon the storage or deletion of individual k/v pairs
+    ptbl_entry->page_usage = memory_alloc(sizeof(unsigned char) * ptbl_entry->page_usage_length);
+
     PTBL_RECORD_SET_PAGE_COUNT(ptbl_entry[0], page_count);
+    PTBL_RECORD_SET_KEY(ptbl_entry[0], bucket);
 }
 
 // x = bucket
@@ -71,11 +68,15 @@ database_ptbl_alloc(
     int page_count,
     int bucket
 ) {
+    DEBUG_PRINT("database_ptbl_alloc(page_count = %d, bucket = %d);\n", page_count, bucket);
+
     if(!rec_database) {
         return 0;
     }
 
     if(!rec_database->ptbl_record_tbl) {
+        DEBUG_PRINT("\tInitializing database ptbl_record table\n");
+
         // Initialize the first database ptbl_record_tbl for given bucket
 
         RECORD_ALLOC(Record_ptbl, rec_database->ptbl_record_tbl);
@@ -92,6 +93,8 @@ database_ptbl_alloc(
         database_ptbl_get(ctx_main, rec_database, bucket);
 
     if(!ptbl) {
+        DEBUG_PRINT("\tInitializing ptbl_record\n");
+
         // Create new ptbl record to init bucket
         unsigned int new_ptbl_record_count = rec_database->ptbl_record_count + 1;
         Record_ptbl *new_ptbl =
@@ -103,7 +106,7 @@ database_ptbl_alloc(
                 );
         rec_database->ptbl_record_count = new_ptbl_record_count;
         if(!new_ptbl) {
-            DEBUG_PRINT("database_alloc_pages(bucket = %d): Failed to realloc database->ptbl_record_tbl\n", bucket);
+            DEBUG_PRINT("\tERR Failed to realloc database->ptbl_record_tbl\n");
             return 0;
         }
         rec_database->ptbl_record_tbl = new_ptbl;
@@ -118,13 +121,13 @@ database_ptbl_alloc(
     }
 
     if(!ptbl->m_offset) {
-        DEBUG_PRINT("Ptbl record, bucket %d, corrupt (m_offset is null)\n", bucket);
+        DEBUG_PRINT("\tERR Ptbl record, bucket %d, corrupt (m_offset is null)\n", bucket);
         return 0;
     }
 
-    DEBUG_PRINT("\ndatabase_ptbl_alloc(.., %d, %d);\n", page_count, bucket);
+    /*DEBUG_PRINT("\ndatabase_ptbl_alloc(.., %d, %d);\n", page_count, bucket);
     DEBUG_PRINT("\tpage_usage_length=%d\n", ptbl->page_usage_length);
-    DEBUG_PRINT("\tpage_count=%d\n", PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]));
+    DEBUG_PRINT("\tpage_count=%d\n", PTBL_RECORD_GET_PAGE_COUNT(ptbl[0]));*/
 
     unsigned char *offset = 0;
     int i = 0,
@@ -140,7 +143,7 @@ database_ptbl_alloc(
         if(bits >= 64) {
             unsigned long *subset = (unsigned long *)(&ptbl->page_usage[i * bytes]);
             for(j = 0; j < bytes / sizeof(unsigned long); j++) {
-                DEBUG_PRINT("%d(%d)[%d]: %016lx\n", i, j, (i * bytes + ((j + 1) * 8)), subset[j]);
+                //DEBUG_PRINT("%d(%d)[%d]: %016lx\n", i, j, (i * bytes + ((j + 1) * 8)), subset[j]);
                 if(subset[j] == 0) {
                     free++;
                 }
@@ -148,20 +151,20 @@ database_ptbl_alloc(
         }
         else if(bits == 32) {
             unsigned usage = ((unsigned *)ptbl->page_usage)[i];
-            DEBUG_PRINT("%d: %08x\n", i, usage);
+            //DEBUG_PRINT("%d: %08x\n", i, usage);
             if(usage == 0) {
                 free = j = 1;
             }
         }
         else if(bits == 16) {
             unsigned short usage = ((unsigned short *)ptbl->page_usage)[i];
-            DEBUG_PRINT("%d: %x\n", i, usage);
+            //DEBUG_PRINT("%d: %x\n", i, usage);
             if(usage == 0) {
                 free = j = 1;
             }
         }
         else if(bits == 8) {
-            DEBUG_PRINT("%d: %x\n", i, ptbl->page_usage[i]);
+            //DEBUG_PRINT("%d: %x\n", i, ptbl->page_usage[i]);
             if(ptbl->page_usage[i] == 0) {
                 free = j = 1;
             }
@@ -197,7 +200,7 @@ database_ptbl_alloc(
                      (ptbl->page_usage[i] & (mask << (bits * k)))
                      >> (bits * k)
                     );
-                DEBUG_PRINT("%d: %d\n", (i * ppb) + k, usage);
+                //DEBUG_PRINT("%d: %d\n", (i * ppb) + k, usage);
                 if(usage == 0) {
                     free++;
                     j = k + 1;
@@ -214,7 +217,7 @@ database_ptbl_alloc(
                     last_free_page = i * ppb + (j - free);
             }
 
-            DEBUG_PRINT("Free pages: %d, last_free_page: %d\n", free_pages, last_free_page);
+            //DEBUG_PRINT("Free pages: %d, last_free_page: %d\n", free_pages, last_free_page);
         }
 
         if(bits > 4) {
@@ -243,7 +246,7 @@ database_ptbl_alloc(
                     * ((bucket <= 8) ? 1 : (1 << (bucket - 8)))
                 );
             last_free_page = -1;
-            DEBUG_PRINT("Offset decided = %p (%ldB, page bucket starts %p)\n", offset, offset - ptbl->m_offset, ptbl->m_offset);
+            ////DEBUG_PRINT("Offset decided = %p (%ldB, page bucket starts %p)\n", offset, offset - ptbl->m_offset, ptbl->m_offset);
             break;
         }
     }
@@ -303,12 +306,21 @@ void database_ptbl_free(
         int i = 0;
         for(; i < rec_database->ptbl_record_count; i++) {
             if(rec_database->ptbl_record_tbl[i].page_usage) {
-                memory_free(rec_database->ptbl_record_tbl[i].page_usage);
-                memory_page_free(
-                        ctx_main,
-                        rec_database->ptbl_record_tbl[i].m_offset,
-                        PTBL_RECORD_GET_PAGE_COUNT(rec_database->ptbl_record_tbl[i])
-                        );
+                Record_ptbl *ptbl_rec = &rec_database->ptbl_record_tbl[i];
+
+                memory_free(ptbl_rec->page_usage);
+                ptbl_rec->page_usage = 0;
+                rec_database->ptbl_record_count = 0;
+
+                unsigned page_count = PTBL_RECORD_GET_PAGE_COUNT(ptbl_rec[0]);
+
+                if(ptbl_rec->m_offset) {
+                    memory_page_free(
+                            ctx_main,
+                            ptbl_rec->m_offset,
+                            page_count
+                            );
+                }
             }
         }
         memory_free(rec_database->ptbl_record_tbl);
@@ -414,16 +426,14 @@ _database_value_alloc(
     Record_ptbl **ptbl_out,
     char bucket
 ) {
+    DEBUG_PRINT("_database_value_alloc(bucket = %d)\n", bucket);
+
     Record_ptbl *ptbl_entry = database_ptbl_get(ctx_main, rec_database, bucket);
     if(!ptbl_entry) {
         if(!database_ptbl_alloc(ctx_main, rec_database, &ptbl_entry, 1, bucket)) {
             DEBUG_PRINT("_database_value_alloc(): Failed call to database_ptbl_alloc()\n");
             return -1;
         }
-    }
-    if(!ptbl_entry->page_usage || ptbl_entry->page_usage_length != PTBL_CALC_PAGE_USAGE_LENGTH(bucket, PTBL_RECORD_GET_PAGE_COUNT(ptbl_entry[0]))) {
-        DEBUG_PRINT("_database_value_alloc(): page_usage_length does not match page count\n");
-        return -1;
     }
 
     if(ptbl_out) ptbl_out[0] = ptbl_entry;
@@ -638,6 +648,7 @@ database_kv_set_value(
     KV_RECORD_SET_SIZE(kv_rec[0], 0);
 
     // Free the value in the bucket
+    DEBUG_PRINT("\tkv_rec = %p, page_usage = %p\n", kv_rec, old_ptbl->page_usage);
     PTBL_RECORD_PAGE_USAGE_FREE(old_ptbl, KV_RECORD_GET_INDEX(kv_rec[0]));
 
     // Set a new bucket/index for kv_rec

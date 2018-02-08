@@ -53,6 +53,7 @@ typedef struct ptbl_record {
     /** @brief Bookkeeping for usage status of all values across all pages managed by this \a ptbl_record
      *  @see   PTBL_CALC_PAGE_USAGE_BYTES()
      *  @see   PTBL_CALC_PAGE_USAGE_BITS()
+     *  @see   PTBL_RECORD_PAGE_USAGE_FREE()
      */
     unsigned char *page_usage;
 } Record_ptbl;
