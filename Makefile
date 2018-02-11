@@ -3,7 +3,7 @@ INC=./include
 OUT_DIR=./out
 OUT=$(OUT_DIR)/test
 
-FLAGS=-Wimplicit-function-declaration -Woverflow
+FLAGS=-Wimplicit-function-declaration -Woverflow -fdiagnostics-color=always --std=c1x
 
 # Default all optimizations
 #CC_OPTS=-I $(INC) -Ofast

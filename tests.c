@@ -19,6 +19,7 @@
 #endif
 
 #define TEST_MAX_BUCKET 23
+//#define MAX_TEST 72
 
 enum {
     TEST_FAILED,
@@ -31,6 +32,8 @@ typedef struct test_context {
     char *reason;
     struct ptbl_record ptbl_rec;
     struct kv_record kv_rec;
+    Record_database *db;
+    Context_main *main;
 } Test_context;
 
 int test_page_alloc(struct main_context * main_context, int pages) {
@@ -60,10 +63,20 @@ void test_stop(Test_context *ctx) {
     else if(ctx->status == TEST_SUCCESS) {
         DEBUG_PRINT("OK\n");
     }
+#if defined(MAX_TEST)
+    if(MAX_TEST == ctx->count) {
+        database_ptbl_free(ctx->main, ctx->db);
+        memory_free(ctx->main);
+        memory_free(ctx->db);
+        memory_free(ctx);
+        exit(0);
+    }
+#endif
 }
 
 int run_tests(struct main_context * main_context) {
     RECORD_CREATE(Test_context, ctx);
+    ctx->main = main_context;
 
 #define ASSERT(x,y) \
     test_start(ctx, y); \
@@ -119,7 +132,6 @@ int run_tests(struct main_context * main_context) {
 
     // bucket_and_index
     KV_RECORD_SET_BUCKET(ctx->kv_rec, 0xff);
-    DEBUG_PRINT("%lx\n", ctx->kv_rec.bucket_and_index);
     ASSERT(0xFC00000000000000 == ctx->kv_rec.bucket_and_index, "KV_RECORD_SET_BUCKET()");
 
     ASSERT(0x3F == KV_RECORD_GET_BUCKET(ctx->kv_rec), "KV_RECORD_GET_BUCKET()");
@@ -152,18 +164,18 @@ int run_tests(struct main_context * main_context) {
 
     /* Testing database.c functionality */
 
-    RECORD_CREATE(Record_database, database);
+    RECORD_ALLOC(Record_database, ctx->db);
 
-    RECORD_ALLOC(Record_ptbl, database->ptbl_record_tbl);
-    database->ptbl_record_count = 1;
+    RECORD_ALLOC(Record_ptbl, ctx->db->ptbl_record_tbl);
+    ctx->db->ptbl_record_count = 1;
 
-    PTBL_RECORD_SET_KEY(database->ptbl_record_tbl[0], 3);
-    PTBL_RECORD_SET_PAGE_COUNT(database->ptbl_record_tbl[0], 1);
+    PTBL_RECORD_SET_KEY(ctx->db->ptbl_record_tbl[0], 3);
+    PTBL_RECORD_SET_PAGE_COUNT(ctx->db->ptbl_record_tbl[0], 1);
 
-    Record_ptbl *ptbl = database_ptbl_get(main_context, database, 3);
-    ASSERT(ptbl == database->ptbl_record_tbl, "database_ptbl_get() finds record");
+    char ptbl_index = database_ptbl_get(main_context, ctx->db, 3);
+    ASSERT(0 == ptbl_index, "database_ptbl_get() finds record");
 
-    ASSERT(0 == database_ptbl_get(main_context, database, -1), "database_ptbl_get() doesn't find record");
+    ASSERT(-1 == database_ptbl_get(main_context, ctx->db, -1), "database_ptbl_get() doesn't find record");
 
     /* The following tests to be run on every bucket
      *
@@ -250,31 +262,33 @@ int run_tests(struct main_context * main_context) {
 	 * 62     | 73EB
 	 * 63     | 147EB
      */
-    database_ptbl_free(main_context, database);
-    ASSERT(database->ptbl_record_count == 0, "ptbl_record_count == 0");
-    ASSERT(database->ptbl_record_tbl == 0, "ptbl_record_tbl == 0");
-    ASSERT(database->kv_record_count == 0, "kv_record_count == 0");
-    ASSERT(database->kv_record_tbl == 0, "kv_record_tbl == 0");
+    database_ptbl_free(main_context, ctx->db);
+    ASSERT(ctx->db->ptbl_record_count == 0, "ptbl_record_count == 0");
+    ASSERT(ctx->db->ptbl_record_tbl == 0, "ptbl_record_tbl == 0");
+    ASSERT(ctx->db->kv_record_count == 0, "kv_record_count == 0");
+    ASSERT(ctx->db->kv_record_tbl == 0, "kv_record_tbl == 0");
 
     for(i = 0; i <= TEST_MAX_BUCKET; i++) {
-        Record_ptbl *ptbl_entry;
         // Alloc a new bucket
-        unsigned char *page_base = database_ptbl_alloc(main_context, database, &ptbl_entry, 10, i);
+        ptbl_index = -1;
+        unsigned char *page_base = database_ptbl_alloc(main_context, ctx->db, &ptbl_index, 10, i);
         ASSERT(0 != page_base, "Allocate a new bucket");
 
-        ASSERT(ptbl_entry, "ptbl_entry not null");
-        ASSERT(PTBL_RECORD_GET_KEY(ptbl_entry[0]) == i, "Correct ptbl_entry");
+#define _PTBL ctx->db->ptbl_record_tbl[ptbl_index]
 
-        ASSERT(database->ptbl_record_count == i + 1, "Correct ptbl_record_count");
+        ASSERT(-1 != ptbl_index, "ptbl_index correct");
+        ASSERT(PTBL_RECORD_GET_KEY(_PTBL) == i, "Correct ptbl_entry");
+
+        ASSERT(ctx->db->ptbl_record_count == i + 1, "Correct ptbl_record_count");
 
         unsigned int count, count2;
 
-        ASSERT((count = PTBL_RECORD_GET_PAGE_COUNT(database->ptbl_record_tbl[i])) == 10, "Correct page_count");
+        ASSERT((count = PTBL_RECORD_GET_PAGE_COUNT(ctx->db->ptbl_record_tbl[i])) == 10, "Correct page_count");
 
-        ASSERT((count = database->ptbl_record_tbl[i].page_usage_length) == (count2 = PTBL_CALC_PAGE_USAGE_LENGTH(i, 10)), "Correct page_usage_length");
+        ASSERT((count = ctx->db->ptbl_record_tbl[i].page_usage_length) == (count2 = PTBL_CALC_PAGE_USAGE_LENGTH(i, 10)), "Correct page_usage_length");
 
         // Alloc a page in the same bucket (should be same result as first time because bucket will be empty)
-        unsigned char *new_page_base = database_ptbl_alloc(main_context, database, 0, 1, i);
+        unsigned char *new_page_base = database_ptbl_alloc(main_context, ctx->db, 0, 1, i);
         ASSERT(0 != new_page_base, "Allocate new page in empty space");
 
         ASSERT(new_page_base == page_base, "New page base == old page base");
@@ -283,22 +297,22 @@ int run_tests(struct main_context * main_context) {
         for(int j = 1; j <= 10; j++) {
             int bits = (i < 8) ? (256 >> i) : 1;
 
-            unsigned int old_page_count = PTBL_RECORD_GET_PAGE_COUNT(database->ptbl_record_tbl[i]);
-            unsigned int old_page_usage_length = database->ptbl_record_tbl[i].page_usage_length;
+            unsigned int old_page_count = PTBL_RECORD_GET_PAGE_COUNT(ctx->db->ptbl_record_tbl[i]);
+            unsigned int old_page_usage_length = ctx->db->ptbl_record_tbl[i].page_usage_length;
             unsigned char *old_page_base = new_page_base;
 
             int k;
             if(i <= 5) {
                 for(k = 0; k < old_page_count; k++)
-                    database->ptbl_record_tbl[i].page_usage[(32 >> i) * k] = 0;
-                database->ptbl_record_tbl[i].page_usage[(32 >> i) * (j - 1)] = 1;
+                    ctx->db->ptbl_record_tbl[i].page_usage[(32 >> i) * k] = 0;
+                ctx->db->ptbl_record_tbl[i].page_usage[(32 >> i) * (j - 1)] = 1;
             }
             else {
                 int slice = 8 / bits;
                 for(k = 0; k < old_page_count; k++) {
-                    database->ptbl_record_tbl[i].page_usage[k / slice] = 0;
+                    ctx->db->ptbl_record_tbl[i].page_usage[k / slice] = 0;
                 }
-                database->ptbl_record_tbl[i].page_usage[(j - 1) / slice] |= (1 << (((j - 1) % slice) * bits));
+                ctx->db->ptbl_record_tbl[i].page_usage[(j - 1) / slice] |= (1 << (((j - 1) % slice) * bits));
             }
 
             // Since we allocated 10 pages in the beginning, it makes sense for new allocations
@@ -310,20 +324,20 @@ int run_tests(struct main_context * main_context) {
             // Because we expect new_page_base to change entirely when it needs to remap the
             // pages because of MREMAP_MAYMOVE, we ignore this check (using -1) if j > 5
             unsigned char *expected_new_page_base = (j > 5) ? (unsigned char *)-1 : old_page_base + main_context->system_page_size * ((i <= 8) ? 1 : (1 << (i - 8)));
-            new_page_base = database_ptbl_alloc(main_context, database, 0, j, i);
+            new_page_base = database_ptbl_alloc(main_context, ctx->db, 0, j, i);
 
             ASSERT(new_page_base, "Correct new_page_base");
             ASSERT(expected_new_page_base == (unsigned char *)-1 || new_page_base == expected_new_page_base, "Correct new_page_base");
 
-            unsigned int new_page_count = PTBL_RECORD_GET_PAGE_COUNT(database->ptbl_record_tbl[i]);
-            unsigned int new_page_usage_length = database->ptbl_record_tbl[i].page_usage_length;
+            unsigned int new_page_count = PTBL_RECORD_GET_PAGE_COUNT(ctx->db->ptbl_record_tbl[i]);
+            unsigned int new_page_usage_length = ctx->db->ptbl_record_tbl[i].page_usage_length;
 
             ASSERT(new_page_usage_length == expected_new_page_usage_length, "Correct new_page_usage_length");
             ASSERT(new_page_count == expected_new_page_count, "Correct new_page_usage_length");
         }
     }
 
-    database_ptbl_free(main_context, database);
+    database_ptbl_free(main_context, ctx->db);
 
     unsigned int buffer_length = 16 << TEST_MAX_BUCKET;
     unsigned int pages_count = ((buffer_length > main_context->system_page_size) ? buffer_length / main_context->system_page_size : 1);
@@ -350,16 +364,16 @@ int run_tests(struct main_context * main_context) {
         for(int l = 0; l < 10; l++) {
             if(l == 1) continue;
             for(int j = 0; j < max_j; j++) {
-                unsigned long k = database_kv_alloc(main_context, database, 1, length, buffer);
+                unsigned long k = database_kv_alloc(main_context, ctx->db, 1, length, buffer);
                 ASSERT(-1 != k, "database_kv_alloc() succeeds");
 
-                Record_kv *rec_kv = database_kv_get(main_context, database, k);
-                ASSERT(0 != rec_kv, "database_kv_get() succeeds");
-                ASSERT(KV_RECORD_GET_SIZE(rec_kv[0]) == length, "Record size equals what was alloc'd");
-                ASSERT(KV_RECORD_GET_BUCKET(rec_kv[0]) == database_calc_bucket(length), "Record bucket correct");
-                ASSERT(KV_RECORD_GET_FLAGS(rec_kv[0]) == 1, "Record flags correct");
+#define _KV ctx->db->kv_record_tbl[k]
 
-                unsigned char *found_buffer = database_kv_get_value(main_context, database, 0, 0, k);
+                ASSERT(KV_RECORD_GET_SIZE(_KV) == length, "Record size equals what was alloc'd");
+                ASSERT(KV_RECORD_GET_BUCKET(_KV) == database_calc_bucket(length), "Record bucket correct");
+                ASSERT(KV_RECORD_GET_FLAGS(_KV) == 1, "Record flags correct");
+
+                unsigned char *found_buffer = database_kv_get_value(main_context, ctx->db, 0, k);
                 ASSERT(0 != found_buffer, "database_kv_get_value() succeeds");
                 ASSERT(0 == memcmp(found_buffer, buffer, length), "found_buffer equals buffer");
 
@@ -369,8 +383,8 @@ int run_tests(struct main_context * main_context) {
                         unsigned long new_length = 16 << b;
                         unsigned char bucket = database_calc_bucket(length);
 
-                        ASSERT(database_kv_set_value(main_context, database, k, new_length, buffer), "database_kv_set_value() succeeds");
-                        found_buffer = database_kv_get_value(main_context, database, 0, 0, k);
+                        ASSERT(database_kv_set_value(main_context, ctx->db, k, new_length, buffer), "database_kv_set_value() succeeds");
+                        found_buffer = database_kv_get_value(main_context, ctx->db, 0, k);
                         ASSERT(0 != found_buffer, "database_kv_get_value() succeeds");
                         ASSERT(0 == memcmp(found_buffer, buffer, new_length), "found_buffer equals buffer");
                     }
@@ -379,15 +393,15 @@ int run_tests(struct main_context * main_context) {
                 if(l > 0) {
                     ASSERT(((j + (l - 1)) / l) == k, "database_kv_alloc() returns correct k");
                     if(j % l) {
-                        ASSERT(database_kv_free(main_context, database, k), "database_kv_free()");
+                        ASSERT(database_kv_free(main_context, ctx->db, k), "database_kv_free()");
                     }
                 }
                 else {
                     ASSERT(j == k, "database_kv_alloc() Returns correct k");
                 }
             }
-            for(int k = database->kv_record_count - 1; k >= 0; k--) {
-                ASSERT(database_kv_free(main_context, database, k), "database_kv_free()");
+            for(int k = ctx->db->kv_record_count - 1; k >= 0; k--) {
+                ASSERT(database_kv_free(main_context, ctx->db, k), "database_kv_free()");
             }
 
 
@@ -397,8 +411,8 @@ int run_tests(struct main_context * main_context) {
 
     memory_page_free(main_context, buffer, pages_count);
 
-    database_ptbl_free(main_context, database);
-    memory_free(database);
+    database_ptbl_free(main_context, ctx->db);
+    memory_free(ctx->db);
     memory_free(ctx);
 
     return 1;

@@ -106,14 +106,13 @@ memory_alloc(
     int amount
 ) {
     DEBUG_PRINT("memory_alloc(%d);\n", amount);
+    unsigned char *region = 0;
     if(amount > 0) {
-        unsigned char *region = malloc(amount);
+        region = malloc(amount);
         memset(region, 0, amount);
-        return region;
     }
-    else {
-        return 0;
-    }
+    DEBUG_PRINT("\treturn %p\n", region);
+    return region;
 }
 
 void

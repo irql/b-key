@@ -203,19 +203,21 @@ typedef struct ptbl_record {
     x.key_high_and_page_count |= ((y & PTBL_KEY_HIGH_BITMASK) << PTBL_KEY_HIGH_SHIFT); \
     x.key_low_and_offset |= ((y & PTBL_KEY_LOW_BITMASK) << PTBL_KEY_LOW_SHIFT);
 
-/** @brief Mark page number \a y as freed in ptbl_record \a x
- *  @param x ptbl_record (\b is a pointer)
- *  @param y page number (kv_record.bucket_and_index)
+/** @brief Mark page number \a z as freed in ptbl_record at index \a y of database_record \a x
+ *  @param x database_record (pointer)
+ *  @param y Index into the ptbl_record_tbl corresponding to the page's bucket
+ *  @param z page number (kv_record.bucket_and_index)
  */
-#define PTBL_RECORD_PAGE_USAGE_FREE(x,y) \
-    x->page_usage[y / 8] &= ~((unsigned char)1 << (y % 8));
+#define PTBL_RECORD_PAGE_USAGE_FREE(x,y,z) \
+    (x)->ptbl_record_tbl[y].page_usage[z / 8] &= ~((unsigned char)1 << (z % 8));
 
 /** @brief Calculate the address in memory that a given kv_record value resides at
- *  @param x The ptbl_record for the bucket that kv_record \a y lives within (\b is a pointer)
- *  @param y The kv_record (\b is a pointer)
+ *  @param x database_record (pointer)
+ *  @param y The ptbl_record for the bucket that kv_record \a y lives within (\b is a pointer)
+ *  @param z The kv_record
  */
-#define PTBL_RECORD_VALUE_PTR(x,y) \
-    (unsigned char *)(x->m_offset + KV_RECORD_GET_INDEX(y[0]) * PTBL_CALC_BUCKET_WORD_SIZE(KV_RECORD_GET_BUCKET(y[0])))
+#define PTBL_RECORD_VALUE_PTR(x,y,z) \
+    (unsigned char *)(x->ptbl_record_tbl[y].m_offset + KV_RECORD_GET_INDEX(z) * PTBL_CALC_BUCKET_WORD_SIZE(KV_RECORD_GET_BUCKET(z)))
 
 /** @brief Holds information for a key/value pair, including the bucket the value resides in, it's \a index (offset) into the
  *         bucket (ptbl_record.m_offset + \a index), in addition to the size of the value in bytes
@@ -269,11 +271,11 @@ typedef struct kv_record {
 #define KV_RECORD_BUCKET_SHIFT 58 ///< Amount to shift \a bucket_and_index right by to extract \a bucket
 #define KV_RECORD_BUCKET_BITMASK ((unsigned long)0x3F << KV_RECORD_BUCKET_SHIFT) ///< To select the upper six bits
 
-/** @brief   Get \a bucket from a kv_record
- *  @param x kv_record (\b not a pointer)
+/** @brief   Get \a bucket from a kv_record pointer
+ *  @param x kv_record
  *  @see     kv_record.bucket_and_index
  */
-#define KV_RECORD_GET_BUCKET(x) ((x.bucket_and_index & KV_RECORD_BUCKET_BITMASK) >> KV_RECORD_BUCKET_SHIFT)
+#define KV_RECORD_GET_BUCKET(x) (((x).bucket_and_index & KV_RECORD_BUCKET_BITMASK) >> KV_RECORD_BUCKET_SHIFT)
 
 /** @brief   Set \a bucket in a kv_record
  *  @param x kv_record (\b not a pointer)
@@ -284,11 +286,11 @@ typedef struct kv_record {
     x.bucket_and_index &= ~KV_RECORD_BUCKET_BITMASK; \
     x.bucket_and_index |= ((unsigned long)(y & (KV_RECORD_BUCKET_BITMASK >> KV_RECORD_BUCKET_SHIFT)) << KV_RECORD_BUCKET_SHIFT);
 
-/** @brief   Get \a index from a kv_record
- *  @param x kv_record (\b not a pointer)
+/** @brief   Get \a index from a kv_record pointer
+ *  @param x kv_record
  *  @see     kv_record.bucket_and_index
  */
-#define KV_RECORD_GET_INDEX(x) (x.bucket_and_index & ~KV_RECORD_BUCKET_BITMASK)
+#define KV_RECORD_GET_INDEX(x) ((x).bucket_and_index & ~KV_RECORD_BUCKET_BITMASK)
 
 /** @brief   Set \a index in a kv_record
  *  @param x kv_record (\b not a pointer)
