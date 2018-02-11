@@ -18,7 +18,7 @@
     #define DEBUG_PRINT(...)
 #endif
 
-#define TEST_MAX_BUCKET 23
+#define TEST_MAX_BUCKET 15
 //#define MAX_TEST 72
 
 enum {
@@ -283,9 +283,9 @@ int run_tests(struct main_context * main_context) {
 
         unsigned int count, count2;
 
-        ASSERT((count = PTBL_RECORD_GET_PAGE_COUNT(ctx->db->ptbl_record_tbl[i])) == 10, "Correct page_count");
+        ASSERT((count = PTBL_RECORD_GET_PAGE_COUNT(_PTBL)) == 10, "Correct page_count");
 
-        ASSERT((count = ctx->db->ptbl_record_tbl[i].page_usage_length) == (count2 = PTBL_CALC_PAGE_USAGE_LENGTH(i, 10)), "Correct page_usage_length");
+        ASSERT((count = _PTBL.page_usage_length) == (count2 = PTBL_CALC_PAGE_USAGE_LENGTH(i, 10)), "Correct page_usage_length");
 
         // Alloc a page in the same bucket (should be same result as first time because bucket will be empty)
         unsigned char *new_page_base = database_ptbl_alloc(main_context, ctx->db, 0, 1, i);
@@ -297,22 +297,22 @@ int run_tests(struct main_context * main_context) {
         for(int j = 1; j <= 10; j++) {
             int bits = (i < 8) ? (256 >> i) : 1;
 
-            unsigned int old_page_count = PTBL_RECORD_GET_PAGE_COUNT(ctx->db->ptbl_record_tbl[i]);
-            unsigned int old_page_usage_length = ctx->db->ptbl_record_tbl[i].page_usage_length;
+            unsigned int old_page_count = PTBL_RECORD_GET_PAGE_COUNT(_PTBL);
+            unsigned int old_page_usage_length = _PTBL.page_usage_length;
             unsigned char *old_page_base = new_page_base;
 
             int k;
             if(i <= 5) {
                 for(k = 0; k < old_page_count; k++)
-                    ctx->db->ptbl_record_tbl[i].page_usage[(32 >> i) * k] = 0;
-                ctx->db->ptbl_record_tbl[i].page_usage[(32 >> i) * (j - 1)] = 1;
+                    _PTBL.page_usage[(32 >> i) * k] = 0;
+                _PTBL.page_usage[(32 >> i) * (j - 1)] = 1;
             }
             else {
                 int slice = 8 / bits;
                 for(k = 0; k < old_page_count; k++) {
-                    ctx->db->ptbl_record_tbl[i].page_usage[k / slice] = 0;
+                    _PTBL.page_usage[k / slice] = 0;
                 }
-                ctx->db->ptbl_record_tbl[i].page_usage[(j - 1) / slice] |= (1 << (((j - 1) % slice) * bits));
+                _PTBL.page_usage[(j - 1) / slice] |= (1 << (((j - 1) % slice) * bits));
             }
 
             // Since we allocated 10 pages in the beginning, it makes sense for new allocations
@@ -329,8 +329,8 @@ int run_tests(struct main_context * main_context) {
             ASSERT(new_page_base, "Correct new_page_base");
             ASSERT(expected_new_page_base == (unsigned char *)-1 || new_page_base == expected_new_page_base, "Correct new_page_base");
 
-            unsigned int new_page_count = PTBL_RECORD_GET_PAGE_COUNT(ctx->db->ptbl_record_tbl[i]);
-            unsigned int new_page_usage_length = ctx->db->ptbl_record_tbl[i].page_usage_length;
+            unsigned int new_page_count = PTBL_RECORD_GET_PAGE_COUNT(_PTBL);
+            unsigned int new_page_usage_length = _PTBL.page_usage_length;
 
             ASSERT(new_page_usage_length == expected_new_page_usage_length, "Correct new_page_usage_length");
             ASSERT(new_page_count == expected_new_page_count, "Correct new_page_usage_length");
@@ -351,17 +351,18 @@ int run_tests(struct main_context * main_context) {
     ASSERT((count = read(fd, buffer, buffer_length)) == buffer_length, "Read random data into buffer");
     close(fd);
 
-    for(i = 0; i < TEST_MAX_BUCKET; i++) {
+    for(i = 0; i <= TEST_MAX_BUCKET; i++) {
         unsigned long length = 16 << i;
         unsigned int bucket = database_calc_bucket(length);
-        unsigned long max_j = // Test as many allocs as we can, but don't go over 65MB
-            (0x10 * main_context->system_page_size) / length;
+        unsigned long max_j = // Test as many allocs as we can, but don't go over max_j
+            (16 << TEST_MAX_BUCKET) / length;
+        unsigned long max_l = (max_j < 20) ? max_j : 20;
 
         // Test that database_calc_bucket() calculates the correct bucket number
         // for varying buffer (value) lengths
         ASSERT(bucket == i, "database_calc_bucket()");
 
-        for(int l = 0; l < 10; l++) {
+        for(int l = 0; l <= max_l; l++) {
             if(l == 1) continue;
             for(int j = 0; j < max_j; j++) {
                 unsigned long k = database_kv_alloc(main_context, ctx->db, 1, length, buffer);
@@ -373,9 +374,10 @@ int run_tests(struct main_context * main_context) {
                 ASSERT(KV_RECORD_GET_BUCKET(_KV) == database_calc_bucket(length), "Record bucket correct");
                 ASSERT(KV_RECORD_GET_FLAGS(_KV) == 1, "Record flags correct");
 
-                unsigned char *found_buffer = database_kv_get_value(main_context, ctx->db, 0, k);
+                unsigned char *found_buffer = database_kv_get_value(main_context, ctx->db, &ptbl_index, k);
                 ASSERT(0 != found_buffer, "database_kv_get_value() succeeds");
                 ASSERT(0 == memcmp(found_buffer, buffer, length), "found_buffer equals buffer");
+                ASSERT(bucket == ptbl_index, "ptbl_index equals bucket");
 
                 // Only do this test once per bucket since we want it to be quick (but still validate the functionality)
                 if(j == max_j / 2) {
@@ -405,7 +407,10 @@ int run_tests(struct main_context * main_context) {
             }
 
 
-            //TODO: Create test to verify ptbl_entry->page_usage
+            ASSERT(_PTBL.page_usage, "page_usage non-null");
+            for(int l = 0; l < _PTBL.page_usage_length; l++) {
+                ASSERT(0 == _PTBL.page_usage[l], "page_usage[l] == 0");
+            }
         }
     }
 

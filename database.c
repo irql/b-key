@@ -341,13 +341,21 @@ void database_ptbl_free(
 ) {
     DEBUG_PRINT("database_ptbl_free();\n");
 
+    unsigned long total = 0;
     if(rec_database->ptbl_record_tbl) {
+
+        DEBUG_PRINT("\t%d ptbl_record = %d bytes\n", rec_database->ptbl_record_count, rec_database->ptbl_record_count * sizeof(Record_ptbl));
+        total += rec_database->ptbl_record_count * sizeof(Record_ptbl);
+
         for(int i = 0; i < rec_database->ptbl_record_count; i++) {
 
 #undef _PTBL
 #define _PTBL rec_database->ptbl_record_tbl[i]
 
             if(_PTBL.page_usage) {
+
+                DEBUG_PRINT("\t%d page_usage = %d bytes\n", _PTBL.page_usage_length, _PTBL.page_usage_length);
+                total += _PTBL.page_usage_length;
 
                 memory_free(_PTBL.page_usage);
                 _PTBL.page_usage = 0;
@@ -368,11 +376,14 @@ void database_ptbl_free(
         rec_database->ptbl_record_tbl = 0;
 
         if(rec_database->kv_record_tbl) {
+            DEBUG_PRINT("\t%d kv_record = %d bytes\n", rec_database->kv_record_count, rec_database->kv_record_count * sizeof(Record_kv));
+            total += rec_database->kv_record_count * sizeof(Record_kv);
             memory_free(rec_database->kv_record_tbl);
         }
         rec_database->kv_record_count = 0;
         rec_database->kv_record_tbl = 0;
     }
+    DEBUG_PRINT("\tTotal in-use freed: %d bytes\n", total);
 }
 
 int database_calc_bucket(
@@ -478,14 +489,10 @@ _database_value_alloc(
 
     char new_ptbl_index = database_ptbl_get(ctx_main, rec_database, bucket);
     if(-1 == new_ptbl_index) {
-        char new_new_ptbl_index;
-
-        if(!database_ptbl_alloc(ctx_main, rec_database, &new_new_ptbl_index, 1, bucket)) {
+        if(!database_ptbl_alloc(ctx_main, rec_database, &new_ptbl_index, 1, bucket)) {
             DEBUG_PRINT("_database_value_alloc(): Failed call to database_ptbl_alloc()\n");
             return -1;
         }
-
-        new_ptbl_index = new_new_ptbl_index;
     }
 
     unsigned long free_index = -1;
