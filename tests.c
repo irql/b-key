@@ -29,6 +29,8 @@ enum {
 typedef struct test_context {
     int count;
     int status;
+    int line;
+    char *file;
     char *reason;
     struct ptbl_record ptbl_rec;
     struct kv_record kv_rec;
@@ -57,7 +59,7 @@ void test_start(Test_context *ctx, char *desc) {
 void test_stop(Test_context *ctx) {
     if(ctx->status == TEST_FAILED) {
         // Don't ignore a test failure
-        fprintf(stderr, "FAIL: %s\n", ctx->reason);
+        fprintf(stderr, "FAIL: %s:%i:%s\n", ctx->file, ctx->line, ctx->reason);
         exit(1);
     }
     else if(ctx->status == TEST_SUCCESS) {
@@ -80,8 +82,10 @@ int run_tests(struct main_context * main_context) {
 
 #define ASSERT(x,y) \
     test_start(ctx, y); \
-    if(! (x) ) { \
-        ctx->reason = "Failed"; \
+    if(!(x) ) { \
+        ctx->reason = #x; \
+        ctx->file = __FILE__; \
+        ctx->line = __LINE__; \
         ctx->status = TEST_FAILED; \
     } \
     test_stop(ctx);
