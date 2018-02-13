@@ -24,7 +24,7 @@ for the JavaScript code in this file
 var NAVTREE =
 [
   [ "B-Key DB", "index.html", [
-    [ "Data Structures ", "index.html#data-structures", null ],
+    [ "Data Structures     ", "index.html#data-structures", null ],
     [ "Classes", "annotated.html", [
       [ "Class List", "annotated.html", "annotated_dup" ],
       [ "Class Index", "classes.html", null ],

@@ -90,12 +90,12 @@ $(document).ready(function(){initNavTree('index.html','');});
 </div><!--header-->
 <div class="contents">
 <div class="toc"><h3>Table of Contents</h3>
-<ul><li class="level1"><a href="#data-structures">Data Structures </a></li>
+<ul><li class="level1"><a href="#data-structures">Data Structures     </a></li>
 </ul>
 </div>
-<div class="textblock"><p>B-Key database is currently nothing more than a garbage-collector, written in C.</p>
+<div class="textblock"><p>B-Key database is currently nothing more than a garbage-collector, written in C. This project is hosted <a href="https://github.com/irql/b-key">here</a> on github.</p>
 <h1><a class="anchor" id="data-structures"></a>
-Data Structures </h1>
+Data Structures     </h1>
 <div class="image">
 <img src="https://irql.github.io/b-key/images/data_structures_1.png" alt="Relationships between database data-structures"/>
 </div>
@@ -107,9 +107,9 @@ Data Structures </h1>
 </ul>
 </li>
 <li><a class="el" href="structkv__record.html" title="Holds information for a key/value pair, including the bucket the value resides in, it&#39;s index (offset) into the bucket (ptbl_record.m_offset + index), in addition to the size of the value in bytes. ">kv_record</a><ul>
-<li><em>bucket</em> - The key of the bucket (i.e. Record_ptbl) that the value corresponding to a key/value pair resides at</li>
+<li><em>bucket</em> - The key of the bucket (i.e. <a class="el" href="structptbl__record.html" title="Holds information relating to a bucket (key), including the number of pages allocated, as well as a pointer to those pages in memory. ">ptbl_record</a>) that the value corresponding to a key/value pair resides at</li>
 <li><em>index</em> - Used to determine the location of the value data in the extent of the bucket's data.<ul>
-<li>value_ptr = <a class="el" href="structptbl__record.html#acec45fcdf4427d3a1b62c84973d5f484" title="A pointer to the start of the allocated pages in memory. ">Record_ptbl.m_offset</a> + index * <a class="el" href="records_8h.html#ab49380468cb45feb3cc044c7337b5e7c" title="Calculate max value size for bucket x. ">PTBL_CALC_BUCKET_WORD_SIZE(bucket)</a></li>
+<li>value_ptr = <a class="el" href="structptbl__record.html#acec45fcdf4427d3a1b62c84973d5f484" title="A pointer to the start of the allocated pages in memory. ">ptbl_record.m_offset</a> + index * <a class="el" href="records_8h.html#ab49380468cb45feb3cc044c7337b5e7c" title="Calculate max value size for bucket x. ">PTBL_CALC_BUCKET_WORD_SIZE(bucket)</a></li>
 </ul>
 </li>
 </ul>
