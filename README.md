@@ -1,6 +1,7 @@
 B-Key DB {#mainpage} 
 ========
 B-Key database is currently nothing more than a garbage-collector, written in C.
+This project is hosted [here](https://github.com/irql/b-key) on github.
 [TOC]
 
 Data Structures {#data-structures}
