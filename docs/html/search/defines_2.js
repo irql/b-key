@@ -1,0 +1,20 @@
+var searchData=
+[
+  ['ptbl_5fcalc_5fbucket_5fword_5fsize',['PTBL_CALC_BUCKET_WORD_SIZE',['../records_8h.html#ab49380468cb45feb3cc044c7337b5e7c',1,'records.h']]],
+  ['ptbl_5fcalc_5fpage_5fusage_5fbits',['PTBL_CALC_PAGE_USAGE_BITS',['../records_8h.html#a46f2b82d234b9778310024626d19fb03',1,'records.h']]],
+  ['ptbl_5fcalc_5fpage_5fusage_5fbytes',['PTBL_CALC_PAGE_USAGE_BYTES',['../records_8h.html#a1cd95048f707ae0b6b39835a9a375f80',1,'records.h']]],
+  ['ptbl_5fcalc_5fpage_5fusage_5flength',['PTBL_CALC_PAGE_USAGE_LENGTH',['../records_8h.html#abcc7cb7701a27ad791d23f88ce3fa2c3',1,'records.h']]],
+  ['ptbl_5fkey_5fbitmask',['PTBL_KEY_BITMASK',['../records_8h.html#a4307b32adc58d4d466f48cb0ca739624',1,'records.h']]],
+  ['ptbl_5fkey_5fhigh_5fbitmask',['PTBL_KEY_HIGH_BITMASK',['../records_8h.html#a17dbe31d1cee6f44a3bad7897ef979bf',1,'records.h']]],
+  ['ptbl_5fkey_5fhigh_5fshift',['PTBL_KEY_HIGH_SHIFT',['../records_8h.html#af847dfd35edd975e85b6a90d795f6f34',1,'records.h']]],
+  ['ptbl_5fkey_5flow_5fbitmask',['PTBL_KEY_LOW_BITMASK',['../records_8h.html#af01d8b6e79fbdd4889e8fc15c72c153b',1,'records.h']]],
+  ['ptbl_5fkey_5flow_5fshift',['PTBL_KEY_LOW_SHIFT',['../records_8h.html#a4d90c2cd7e45496cdae365da72106579',1,'records.h']]],
+  ['ptbl_5frecord_5fget_5fkey',['PTBL_RECORD_GET_KEY',['../records_8h.html#a8e35710be790a9afaebb611c8961e902',1,'records.h']]],
+  ['ptbl_5frecord_5fget_5foffset',['PTBL_RECORD_GET_OFFSET',['../records_8h.html#ac9930081aa81ff02727b678b745d0316',1,'records.h']]],
+  ['ptbl_5frecord_5fget_5fpage_5fcount',['PTBL_RECORD_GET_PAGE_COUNT',['../records_8h.html#a647e71e3027f3c991be8fcd4f60bf2d2',1,'records.h']]],
+  ['ptbl_5frecord_5fpage_5fusage_5ffree',['PTBL_RECORD_PAGE_USAGE_FREE',['../records_8h.html#ab1ba341a9a6bebf5f1c883876fe6943a',1,'records.h']]],
+  ['ptbl_5frecord_5fset_5fkey',['PTBL_RECORD_SET_KEY',['../records_8h.html#ad9320ecf8a9235a6c89f644e7fbc9b38',1,'records.h']]],
+  ['ptbl_5frecord_5fset_5foffset',['PTBL_RECORD_SET_OFFSET',['../records_8h.html#afdc13ecd37c36af6dc8f095c5575cc57',1,'records.h']]],
+  ['ptbl_5frecord_5fset_5fpage_5fcount',['PTBL_RECORD_SET_PAGE_COUNT',['../records_8h.html#a0fcde3739a73415bcfbc2812ad7923c5',1,'records.h']]],
+  ['ptbl_5frecord_5fvalue_5fptr',['PTBL_RECORD_VALUE_PTR',['../records_8h.html#af3d07908f3a0accb47c36c0c34b53f40',1,'records.h']]]
+];

@@ -1,0 +1,143 @@
+\hypertarget{structptbl__record}{}\section{ptbl\+\_\+record Struct Reference}
+\label{structptbl__record}\index{ptbl\+\_\+record@{ptbl\+\_\+record}}
+
+
+Holds information relating to a bucket ({\itshape key}), including the number of pages allocated, as well as a pointer to those pages in memory.  
+
+
+
+
+{\ttfamily \#include $<$records.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+unsigned int \mbox{\hyperlink{structptbl__record_a34c3fcdd6600f21e6708955bc93195d6}{key\+\_\+high\+\_\+and\+\_\+page\+\_\+count}}
+\begin{DoxyCompactList}\small\item\em Holds the uppermost three bits of {\itshape key} and all bits of {\itshape page\+\_\+count}. \end{DoxyCompactList}\item 
+unsigned int \mbox{\hyperlink{structptbl__record_a50bac56284cd6f4e527a322e07d28772}{key\+\_\+low\+\_\+and\+\_\+offset}}
+\begin{DoxyCompactList}\small\item\em Holds the lowermost three bits of {\itshape key} and all bits of {\itshape offset}. \end{DoxyCompactList}\item 
+unsigned char $\ast$ \mbox{\hyperlink{structptbl__record_acec45fcdf4427d3a1b62c84973d5f484}{m\+\_\+offset}}
+\begin{DoxyCompactList}\small\item\em A pointer to the start of the allocated pages in memory. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structptbl__record_ab5a995939843a27fce29eaf0d153e8a6}\label{structptbl__record_ab5a995939843a27fce29eaf0d153e8a6}} 
+unsigned int \mbox{\hyperlink{structptbl__record_ab5a995939843a27fce29eaf0d153e8a6}{page\+\_\+usage\+\_\+length}}
+\begin{DoxyCompactList}\small\item\em The length of {\itshape page\+\_\+usage} in bytes. \end{DoxyCompactList}\item 
+unsigned char $\ast$ \mbox{\hyperlink{structptbl__record_aa2164881b8f812e973541c819152a8fe}{page\+\_\+usage}}
+\begin{DoxyCompactList}\small\item\em Bookkeeping for usage status of all values across all pages managed by this {\itshape \mbox{\hyperlink{structptbl__record}{ptbl\+\_\+record}}}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Holds information relating to a bucket ({\itshape key}), including the number of pages allocated, as well as a pointer to those pages in memory. 
+
+This record has three composed values, which are encoded using the bits of {\itshape key\+\_\+high\+\_\+and\+\_\+page\+\_\+count} and {\itshape key\+\_\+low\+\_\+and\+\_\+offset} and require a macro to either get or set them.
+
+The composed values are\+:
+\begin{DoxyItemize}
+\item {\itshape key} -\/ bucket
+\item {\itshape page\+\_\+count} -\/ Number of pages currently allocated
+\item {\itshape offset} -\/ ({\bfseries disk-\/only}) An offset to the start of the page region 
+\end{DoxyItemize}
+
+\subsection{Member Data Documentation}
+\mbox{\Hypertarget{structptbl__record_a34c3fcdd6600f21e6708955bc93195d6}\label{structptbl__record_a34c3fcdd6600f21e6708955bc93195d6}} 
+\index{ptbl\+\_\+record@{ptbl\+\_\+record}!key\+\_\+high\+\_\+and\+\_\+page\+\_\+count@{key\+\_\+high\+\_\+and\+\_\+page\+\_\+count}}
+\index{key\+\_\+high\+\_\+and\+\_\+page\+\_\+count@{key\+\_\+high\+\_\+and\+\_\+page\+\_\+count}!ptbl\+\_\+record@{ptbl\+\_\+record}}
+\subsubsection{\texorpdfstring{key\+\_\+high\+\_\+and\+\_\+page\+\_\+count}{key\_high\_and\_page\_count}}
+{\footnotesize\ttfamily unsigned int ptbl\+\_\+record\+::key\+\_\+high\+\_\+and\+\_\+page\+\_\+count}
+
+
+
+Holds the uppermost three bits of {\itshape key} and all bits of {\itshape page\+\_\+count}. 
+
+\tabulinesep=1mm
+\begin{longtabu} spread 0pt [c]{*{3}{|X[-1]}|}
+\hline
+\rowcolor{\tableheadbgcolor}\textbf{ Range in bits  }&\textbf{ Size in bits  }&\textbf{ Description   }\\\cline{1-3}
+\endfirsthead
+\hline
+\endfoot
+\hline
+\rowcolor{\tableheadbgcolor}\textbf{ Range in bits  }&\textbf{ Size in bits  }&\textbf{ Description   }\\\cline{1-3}
+\endhead
+0 -\/ 28  &29  &{\itshape page\+\_\+count}   \\\cline{1-3}
+29 -\/ 31  &3  &{\itshape key} (high)   \\\cline{1-3}
+\end{longtabu}
+
+
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{records_8h_a0fcde3739a73415bcfbc2812ad7923c5}{P\+T\+B\+L\+\_\+\+R\+E\+C\+O\+R\+D\+\_\+\+S\+E\+T\+\_\+\+P\+A\+G\+E\+\_\+\+C\+O\+U\+N\+T()}} 
+
+\mbox{\hyperlink{records_8h_a647e71e3027f3c991be8fcd4f60bf2d2}{P\+T\+B\+L\+\_\+\+R\+E\+C\+O\+R\+D\+\_\+\+G\+E\+T\+\_\+\+P\+A\+G\+E\+\_\+\+C\+O\+U\+N\+T()}} 
+
+\mbox{\hyperlink{records_8h_ad9320ecf8a9235a6c89f644e7fbc9b38}{P\+T\+B\+L\+\_\+\+R\+E\+C\+O\+R\+D\+\_\+\+S\+E\+T\+\_\+\+K\+E\+Y()}} 
+
+\mbox{\hyperlink{records_8h_a8e35710be790a9afaebb611c8961e902}{P\+T\+B\+L\+\_\+\+R\+E\+C\+O\+R\+D\+\_\+\+G\+E\+T\+\_\+\+K\+E\+Y()}} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structptbl__record_a50bac56284cd6f4e527a322e07d28772}\label{structptbl__record_a50bac56284cd6f4e527a322e07d28772}} 
+\index{ptbl\+\_\+record@{ptbl\+\_\+record}!key\+\_\+low\+\_\+and\+\_\+offset@{key\+\_\+low\+\_\+and\+\_\+offset}}
+\index{key\+\_\+low\+\_\+and\+\_\+offset@{key\+\_\+low\+\_\+and\+\_\+offset}!ptbl\+\_\+record@{ptbl\+\_\+record}}
+\subsubsection{\texorpdfstring{key\+\_\+low\+\_\+and\+\_\+offset}{key\_low\_and\_offset}}
+{\footnotesize\ttfamily unsigned int ptbl\+\_\+record\+::key\+\_\+low\+\_\+and\+\_\+offset}
+
+
+
+Holds the lowermost three bits of {\itshape key} and all bits of {\itshape offset}. 
+
+\tabulinesep=1mm
+\begin{longtabu} spread 0pt [c]{*{3}{|X[-1]}|}
+\hline
+\rowcolor{\tableheadbgcolor}\textbf{ Range in bits  }&\textbf{ Size in bits  }&\textbf{ Description   }\\\cline{1-3}
+\endfirsthead
+\hline
+\endfoot
+\hline
+\rowcolor{\tableheadbgcolor}\textbf{ Range in bits  }&\textbf{ Size in bits  }&\textbf{ Description   }\\\cline{1-3}
+\endhead
+0 -\/ 28  &29  &{\itshape offset}   \\\cline{1-3}
+29 -\/ 31  &3  &{\itshape key} (low)   \\\cline{1-3}
+\end{longtabu}
+
+
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{records_8h_afdc13ecd37c36af6dc8f095c5575cc57}{P\+T\+B\+L\+\_\+\+R\+E\+C\+O\+R\+D\+\_\+\+S\+E\+T\+\_\+\+O\+F\+F\+S\+E\+T()}} 
+
+\mbox{\hyperlink{records_8h_ac9930081aa81ff02727b678b745d0316}{P\+T\+B\+L\+\_\+\+R\+E\+C\+O\+R\+D\+\_\+\+G\+E\+T\+\_\+\+O\+F\+F\+S\+E\+T()}} 
+
+\mbox{\hyperlink{records_8h_ad9320ecf8a9235a6c89f644e7fbc9b38}{P\+T\+B\+L\+\_\+\+R\+E\+C\+O\+R\+D\+\_\+\+S\+E\+T\+\_\+\+K\+E\+Y()}} 
+
+\mbox{\hyperlink{records_8h_a8e35710be790a9afaebb611c8961e902}{P\+T\+B\+L\+\_\+\+R\+E\+C\+O\+R\+D\+\_\+\+G\+E\+T\+\_\+\+K\+E\+Y()}} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structptbl__record_acec45fcdf4427d3a1b62c84973d5f484}\label{structptbl__record_acec45fcdf4427d3a1b62c84973d5f484}} 
+\index{ptbl\+\_\+record@{ptbl\+\_\+record}!m\+\_\+offset@{m\+\_\+offset}}
+\index{m\+\_\+offset@{m\+\_\+offset}!ptbl\+\_\+record@{ptbl\+\_\+record}}
+\subsubsection{\texorpdfstring{m\+\_\+offset}{m\_offset}}
+{\footnotesize\ttfamily unsigned char$\ast$ ptbl\+\_\+record\+::m\+\_\+offset}
+
+
+
+A pointer to the start of the allocated pages in memory. 
+
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{structkv__record_aa6e3c994316398afea8be6a05094f5b0}{kv\+\_\+record.\+bucket\+\_\+and\+\_\+index}} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structptbl__record_aa2164881b8f812e973541c819152a8fe}\label{structptbl__record_aa2164881b8f812e973541c819152a8fe}} 
+\index{ptbl\+\_\+record@{ptbl\+\_\+record}!page\+\_\+usage@{page\+\_\+usage}}
+\index{page\+\_\+usage@{page\+\_\+usage}!ptbl\+\_\+record@{ptbl\+\_\+record}}
+\subsubsection{\texorpdfstring{page\+\_\+usage}{page\_usage}}
+{\footnotesize\ttfamily unsigned char$\ast$ ptbl\+\_\+record\+::page\+\_\+usage}
+
+
+
+Bookkeeping for usage status of all values across all pages managed by this {\itshape \mbox{\hyperlink{structptbl__record}{ptbl\+\_\+record}}}. 
+
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{records_8h_a1cd95048f707ae0b6b39835a9a375f80}{P\+T\+B\+L\+\_\+\+C\+A\+L\+C\+\_\+\+P\+A\+G\+E\+\_\+\+U\+S\+A\+G\+E\+\_\+\+B\+Y\+T\+E\+S()}} 
+
+\mbox{\hyperlink{records_8h_a46f2b82d234b9778310024626d19fb03}{P\+T\+B\+L\+\_\+\+C\+A\+L\+C\+\_\+\+P\+A\+G\+E\+\_\+\+U\+S\+A\+G\+E\+\_\+\+B\+I\+T\+S()}} 
+
+\mbox{\hyperlink{records_8h_ab1ba341a9a6bebf5f1c883876fe6943a}{P\+T\+B\+L\+\_\+\+R\+E\+C\+O\+R\+D\+\_\+\+P\+A\+G\+E\+\_\+\+U\+S\+A\+G\+E\+\_\+\+F\+R\+E\+E()}} 
+\end{DoxySeeAlso}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{records_8h}{records.\+h}}\end{DoxyCompactItemize}

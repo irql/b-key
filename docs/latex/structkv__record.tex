@@ -1,0 +1,111 @@
+\hypertarget{structkv__record}{}\section{kv\+\_\+record Struct Reference}
+\label{structkv__record}\index{kv\+\_\+record@{kv\+\_\+record}}
+
+
+Holds information for a key/value pair, including the bucket the value resides in, it\textquotesingle{}s {\itshape index} (offset) into the bucket (\mbox{\hyperlink{structptbl__record_acec45fcdf4427d3a1b62c84973d5f484}{ptbl\+\_\+record.\+m\+\_\+offset}} + {\itshape index}), in addition to the size of the value in bytes.  
+
+
+
+
+{\ttfamily \#include $<$records.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+unsigned long \mbox{\hyperlink{structkv__record_aeb53c0b3c86b47eaddb5ad8b83f6ed69}{flags\+\_\+and\+\_\+size}}
+\begin{DoxyCompactList}\small\item\em Holds the bits of both {\itshape flags} and {\itshape size}. \end{DoxyCompactList}\item 
+unsigned long \mbox{\hyperlink{structkv__record_aa6e3c994316398afea8be6a05094f5b0}{bucket\+\_\+and\+\_\+index}}
+\begin{DoxyCompactList}\small\item\em Holds the bits of both {\itshape bucket} and {\itshape index}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Holds information for a key/value pair, including the bucket the value resides in, it\textquotesingle{}s {\itshape index} (offset) into the bucket (\mbox{\hyperlink{structptbl__record_acec45fcdf4427d3a1b62c84973d5f484}{ptbl\+\_\+record.\+m\+\_\+offset}} + {\itshape index}), in addition to the size of the value in bytes. 
+
+This record has four composed values, which are encoded using the bits of {\itshape flags\+\_\+and\+\_\+size} and {\itshape bucket\+\_\+and\+\_\+index} and require a macro to either get or set them.
+
+The composed values are\+:
+\begin{DoxyItemize}
+\item {\itshape flags} -\/ The data type of the KV
+\item {\itshape size} -\/ The size of the value in bytes
+\item {\itshape bucket} -\/ Which bucket (\mbox{\hyperlink{structptbl__record}{ptbl\+\_\+record}}) the page that holds this value resides in
+\item {\itshape index} -\/ Used to determine the offset into the pages of bucket that this value starts at (value = \mbox{\hyperlink{structptbl__record_acec45fcdf4427d3a1b62c84973d5f484}{ptbl\+\_\+record.\+m\+\_\+offset}} + index $\ast$ \mbox{\hyperlink{records_8h_ab49380468cb45feb3cc044c7337b5e7c}{P\+T\+B\+L\+\_\+\+C\+A\+L\+C\+\_\+\+B\+U\+C\+K\+E\+T\+\_\+\+W\+O\+R\+D\+\_\+\+S\+I\+Z\+E(bucket)}}) 
+\end{DoxyItemize}
+
+\subsection{Member Data Documentation}
+\mbox{\Hypertarget{structkv__record_aa6e3c994316398afea8be6a05094f5b0}\label{structkv__record_aa6e3c994316398afea8be6a05094f5b0}} 
+\index{kv\+\_\+record@{kv\+\_\+record}!bucket\+\_\+and\+\_\+index@{bucket\+\_\+and\+\_\+index}}
+\index{bucket\+\_\+and\+\_\+index@{bucket\+\_\+and\+\_\+index}!kv\+\_\+record@{kv\+\_\+record}}
+\subsubsection{\texorpdfstring{bucket\+\_\+and\+\_\+index}{bucket\_and\_index}}
+{\footnotesize\ttfamily unsigned long kv\+\_\+record\+::bucket\+\_\+and\+\_\+index}
+
+
+
+Holds the bits of both {\itshape bucket} and {\itshape index}. 
+
+{\itshape index} is used to determine the offset into the pages of {\itshape bucket} (\mbox{\hyperlink{structptbl__record}{ptbl\+\_\+record}} in a \mbox{\hyperlink{structdatabase__record}{database\+\_\+record}}) that this value starts at. This offset is used to determine the pointer to the actual \mbox{\hyperlink{structkv__record}{kv\+\_\+record}} value data in both the in-\/memory \mbox{\hyperlink{structdatabase__record}{database\+\_\+record}} as well as in the serialized copy that lives on-\/disk.
+
+value = \mbox{\hyperlink{structptbl__record_acec45fcdf4427d3a1b62c84973d5f484}{ptbl\+\_\+record.\+m\+\_\+offset}} + {\itshape index} $\ast$ \mbox{\hyperlink{records_8h_ab49380468cb45feb3cc044c7337b5e7c}{P\+T\+B\+L\+\_\+\+C\+A\+L\+C\+\_\+\+B\+U\+C\+K\+E\+T\+\_\+\+W\+O\+R\+D\+\_\+\+S\+I\+Z\+E(bucket)}}
+
+\tabulinesep=1mm
+\begin{longtabu} spread 0pt [c]{*{3}{|X[-1]}|}
+\hline
+\rowcolor{\tableheadbgcolor}\textbf{ Range in bits  }&\textbf{ Size in bits  }&\textbf{ Description   }\\\cline{1-3}
+\endfirsthead
+\hline
+\endfoot
+\hline
+\rowcolor{\tableheadbgcolor}\textbf{ Range in bits  }&\textbf{ Size in bits  }&\textbf{ Description   }\\\cline{1-3}
+\endhead
+0 -\/ 57  &58  &{\itshape index}   \\\cline{1-3}
+58 -\/ 63  &6  &{\itshape bucket}   \\\cline{1-3}
+\end{longtabu}
+
+
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{records_8h_a80448b087f4397d78cb18e87a4c03875}{K\+V\+\_\+\+R\+E\+C\+O\+R\+D\+\_\+\+G\+E\+T\+\_\+\+B\+U\+C\+K\+E\+T()}} 
+
+\mbox{\hyperlink{records_8h_a18d200962bc69924d436b8e8c224c6fb}{K\+V\+\_\+\+R\+E\+C\+O\+R\+D\+\_\+\+S\+E\+T\+\_\+\+B\+U\+C\+K\+E\+T()}} 
+
+\mbox{\hyperlink{records_8h_a6889537ca98023db3031819f454673c5}{K\+V\+\_\+\+R\+E\+C\+O\+R\+D\+\_\+\+G\+E\+T\+\_\+\+I\+N\+D\+E\+X()}} 
+
+\mbox{\hyperlink{records_8h_adae07bcfb40a4d18850231371ec6204e}{K\+V\+\_\+\+R\+E\+C\+O\+R\+D\+\_\+\+S\+E\+T\+\_\+\+I\+N\+D\+E\+X()}} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{structkv__record_aeb53c0b3c86b47eaddb5ad8b83f6ed69}\label{structkv__record_aeb53c0b3c86b47eaddb5ad8b83f6ed69}} 
+\index{kv\+\_\+record@{kv\+\_\+record}!flags\+\_\+and\+\_\+size@{flags\+\_\+and\+\_\+size}}
+\index{flags\+\_\+and\+\_\+size@{flags\+\_\+and\+\_\+size}!kv\+\_\+record@{kv\+\_\+record}}
+\subsubsection{\texorpdfstring{flags\+\_\+and\+\_\+size}{flags\_and\_size}}
+{\footnotesize\ttfamily unsigned long kv\+\_\+record\+::flags\+\_\+and\+\_\+size}
+
+
+
+Holds the bits of both {\itshape flags} and {\itshape size}. 
+
+\tabulinesep=1mm
+\begin{longtabu} spread 0pt [c]{*{3}{|X[-1]}|}
+\hline
+\rowcolor{\tableheadbgcolor}\textbf{ Range in bits  }&\textbf{ Size in bits  }&\textbf{ Description   }\\\cline{1-3}
+\endfirsthead
+\hline
+\endfoot
+\hline
+\rowcolor{\tableheadbgcolor}\textbf{ Range in bits  }&\textbf{ Size in bits  }&\textbf{ Description   }\\\cline{1-3}
+\endhead
+0 -\/ 55  &56  &{\itshape size}   \\\cline{1-3}
+56 -\/ 63  &8  &{\itshape flags}   \\\cline{1-3}
+\end{longtabu}
+
+
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{records_8h_a6c57183858046577704315da0c646e17}{K\+V\+\_\+\+R\+E\+C\+O\+R\+D\+\_\+\+G\+E\+T\+\_\+\+S\+I\+Z\+E()}} 
+
+\mbox{\hyperlink{records_8h_a422fd63a07942a1af4d47c76b34857c9}{K\+V\+\_\+\+R\+E\+C\+O\+R\+D\+\_\+\+S\+E\+T\+\_\+\+S\+I\+Z\+E()}} 
+
+\mbox{\hyperlink{records_8h_a9e4e6c1a697e44bdc2a2f12dbbae4aaf}{K\+V\+\_\+\+R\+E\+C\+O\+R\+D\+\_\+\+G\+E\+T\+\_\+\+F\+L\+A\+G\+S()}} 
+
+\mbox{\hyperlink{records_8h_a5202e03977dd0331402ecccf11df1646}{K\+V\+\_\+\+R\+E\+C\+O\+R\+D\+\_\+\+S\+E\+T\+\_\+\+F\+L\+A\+G\+S()}} 
+\end{DoxySeeAlso}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{records_8h}{records.\+h}}\end{DoxyCompactItemize}

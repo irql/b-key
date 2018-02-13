@@ -1,0 +1,20 @@
+B-\/\+Key database is currently nothing more than a garbage-\/collector, written in C.\hypertarget{index_data-structures}{}\section{Data Structures }\label{index_data-structures}
+
+\begin{DoxyItemize}
+\item \mbox{\hyperlink{structptbl__record}{ptbl\+\_\+record}}
+\begin{DoxyItemize}
+\item {\itshape page\+\_\+usage} -\/ pointer to an array of characters, each bit of which represents a boolean value determining whether the corresponding value slot is used (1) or not used (0)
+\item {\itshape m\+\_\+offset} -\/ pointer to the start of a bucket\textquotesingle{}s data (i.\+e. the data for values stored in a bucket)
+\item {\itshape key} -\/ Positive integer value which identifies the bucket numerically. This value is {\itshape six bits} in size.
+\end{DoxyItemize}
+\item \mbox{\hyperlink{structkv__record}{kv\+\_\+record}}
+\begin{DoxyItemize}
+\item {\itshape bucket} -\/ The key of the bucket (i.\+e. Record\+\_\+ptbl) that the value corresponding to a key/value pair resides at
+\item {\itshape index} -\/ Used to determine the location of the value data in the extent of the bucket\textquotesingle{}s data.
+\begin{DoxyItemize}
+\item value\+\_\+ptr = \mbox{\hyperlink{structptbl__record_acec45fcdf4427d3a1b62c84973d5f484}{Record\+\_\+ptbl.\+m\+\_\+offset}} + index $\ast$ \mbox{\hyperlink{records_8h_ab49380468cb45feb3cc044c7337b5e7c}{P\+T\+B\+L\+\_\+\+C\+A\+L\+C\+\_\+\+B\+U\+C\+K\+E\+T\+\_\+\+W\+O\+R\+D\+\_\+\+S\+I\+Z\+E(bucket)}}
+\end{DoxyItemize}
+\end{DoxyItemize}
+\end{DoxyItemize}
+
+See \mbox{\hyperlink{records_8h}{records.\+h}}. 
