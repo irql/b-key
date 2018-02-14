@@ -90,16 +90,21 @@ $(document).ready(function(){initNavTree('index.html','');});
 </div><!--header-->
 <div class="contents">
 <div class="toc"><h3>Table of Contents</h3>
-<ul><li class="level1"><a href="#data-structures">Data Structures     </a></li>
+<ul><li class="level1"><a href="#data-structures">Data Structures     </a><ul><li class="level2"><a href="#ds-memory">Memory Management</a></li>
+</ul>
+</li>
 </ul>
 </div>
 <div class="textblock"><p>B-Key database is currently nothing more than a garbage-collector, written in C. This project is hosted <a href="https://github.com/irql/b-key">here</a> on github.</p>
 <h1><a class="anchor" id="data-structures"></a>
 Data Structures     </h1>
+<h2><a class="anchor" id="ds-memory"></a>
+Memory Management</h2>
 <div class="image">
-<img src="https://irql.github.io/b-key/images/data_structures_1.png" alt="Relationships between database data-structures"/>
+<img src="https://irql.github.io/b-key/images/data_structures_1.png" alt="Relationships between database memory-management data-structures"/>
 </div>
 <ul>
+<li><a class="el" href="structdatabase__record.html" title="Holds the global state of the database. ">database_record</a><ul>
 <li><a class="el" href="structptbl__record.html" title="Holds information relating to a bucket (key), including the number of pages allocated, as well as a pointer to those pages in memory. ">ptbl_record</a><ul>
 <li><em>page_usage</em> - pointer to an array of characters, each bit of which represents a boolean value determining whether the corresponding value slot is used (1) or not used (0)</li>
 <li><em>m_offset</em> - pointer to the start of a bucket's data (i.e. the data for values stored in a bucket)</li>
@@ -110,6 +115,8 @@ Data Structures     </h1>
 <li><em>bucket</em> - The key of the bucket (i.e. <a class="el" href="structptbl__record.html" title="Holds information relating to a bucket (key), including the number of pages allocated, as well as a pointer to those pages in memory. ">ptbl_record</a>) that the value corresponding to a key/value pair resides at</li>
 <li><em>index</em> - Used to determine the location of the value data in the extent of the bucket's data.<ul>
 <li>value_ptr = <a class="el" href="structptbl__record.html#acec45fcdf4427d3a1b62c84973d5f484" title="A pointer to the start of the allocated pages in memory. ">ptbl_record.m_offset</a> + index * <a class="el" href="records_8h.html#ab49380468cb45feb3cc044c7337b5e7c" title="Calculate max value size for bucket x. ">PTBL_CALC_BUCKET_WORD_SIZE(bucket)</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

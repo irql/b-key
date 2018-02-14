@@ -28,6 +28,7 @@ var NAVTREEINDEX0 =
 "globals_type.html":[2,1,2],
 "index.html":[],
 "index.html#data-structures":[0],
+"index.html#ds-memory":[0,0],
 "memory_8h.html":[2,0,3],
 "memory_8h.html#a25d3abaea079ae74d3b8d19da56a30a5":[2,0,3,5],
 "memory_8h.html#a68b9fe986777bee97ccfe01a7e421060":[2,0,3,3],

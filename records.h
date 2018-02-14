@@ -125,7 +125,7 @@ typedef struct ptbl_record {
  * | 1      | 32B       |
  * | 2      | 64B       |
  * | 3      | 128B      |
- * | \a x   | (1 << (4 + \a x)) |
+ * | \a x   | (16 << \a x) |
  * | 63     | 147EB     |
  *
  * @param   x bucket \f$0 \leq x \leq 63\f$
